@@ -67,6 +67,10 @@ enum {
 const char* bookmarkDisplayModesTxt = "Off\0Top\0Bottom\0";
 const char* bookmarkRowsTxt = "1\0""2\0""3\0""4\0""5\0";
 
+bool compareWaterfallBookmarks(WaterfallBookmark wbm1, WaterfallBookmark wbm2) {
+    return (wbm1.bookmark.frequency < wbm2.bookmark.frequency);
+}
+
 class BookmarkManagerModule : public ModuleManager::Instance {
 public:
     BookmarkManagerModule(std::string name) {
@@ -311,6 +315,7 @@ private:
                 waterfallBookmarks.push_back(wbm);
             }
         }
+        std::sort(waterfallBookmarks.begin(), waterfallBookmarks.end(), compareWaterfallBookmarks);
         if (lockConfig) { config.release(); }
     }
 
