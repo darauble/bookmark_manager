@@ -12,6 +12,8 @@ Nothing else is changed, but users can now choose to use between 1 and 5 lines f
 
 ![Bookmark Manager arranges bookmarks in sevral rows](screenshots/sdrpp-bookmark-manager.png?raw=true "Bookmark Manager arranges bookmarks in sevral rows")
 
+Bookmarks with UTC and currently not online are greyed out.
+
 ## Current Features
 
 (As opposed to original Frequency Manager)
