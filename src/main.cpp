@@ -13,12 +13,13 @@
 #include <utils/freq_formatting.h>
 #include <gui/dialogs/dialog_box.h>
 #include <fstream>
+#include "utc.h"
 
 SDRPP_MOD_INFO{
     /* Name:            */ "bookmark_manager",
     /* Description:     */ "Bookmark manager module for SDR++",
     /* Author:          */ "Ryzerth;Zimm;Darau Ble",
-    /* Version:         */ 0, 0, 1,
+    /* Version:         */ 0, 1, 0,
     /* Max instances    */ 1
 };
 
@@ -27,6 +28,8 @@ struct FrequencyBookmark {
     double bandwidth;
     int mode;
     bool selected;
+    int startTime;
+    int endTime;
 };
 
 struct WaterfallBookmark {
@@ -70,6 +73,27 @@ const char* bookmarkRowsTxt = "1\0""2\0""3\0""4\0""5\0";
 
 bool compareWaterfallBookmarks(WaterfallBookmark wbm1, WaterfallBookmark wbm2) {
     return (wbm1.bookmark.frequency < wbm2.bookmark.frequency);
+}
+
+bool timeValid(int time) {
+    // Check HHMM time validity.
+    int hours = time / 100;
+    int minutes = time % 100;
+
+    return (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59);
+}
+
+bool bookmarkOnline(FrequencyBookmark bm, int now) {
+    if (bm.startTime == 0 && bm.endTime == 0) {
+        return true;
+    } else if (bm.startTime < bm.endTime) {
+        return (bm.startTime <= now) && (now < bm.endTime);
+    } else if (bm.startTime > bm.endTime) {
+        return ((bm.startTime <= now) && (now <= 2359))
+            || ((bm.startTime >= 0) && (now <= bm.endTime));
+    } else {
+        return false; // When start and end times are equal (except 0000).
+    }
 }
 
 class BookmarkManagerModule : public ModuleManager::Instance {
@@ -175,6 +199,28 @@ private:
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
+            ImGui::LeftLabel("Start Time");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::SetNextItemWidth(200);
+            ImGui::InputScalarN(
+                ("##freq_manager_edit_start_time" + name).c_str(),
+                ImGuiDataType_S32,
+                &editedBookmark.startTime, 1,
+                NULL, NULL, "%04d", NULL);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::LeftLabel("End Time");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::SetNextItemWidth(200);
+            ImGui::InputScalarN(
+                ("##freq_manager_edit_end_time" + name).c_str(),
+                ImGuiDataType_S32,
+                &editedBookmark.endTime, 1,
+                NULL, NULL, "%04d", NULL);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Mode");
             ImGui::TableSetColumnIndex(1);
             ImGui::SetNextItemWidth(200);
@@ -183,7 +229,10 @@ private:
 
             ImGui::EndTable();
 
-            bool applyDisabled = (strlen(nameBuf) == 0) || (bookmarks.find(editedBookmarkName) != bookmarks.end() && editedBookmarkName != firstEditedBookmarkName);
+            bool applyDisabled = 
+                (strlen(nameBuf) == 0) 
+                || (bookmarks.find(editedBookmarkName) != bookmarks.end() && editedBookmarkName != firstEditedBookmarkName)
+                || !timeValid(editedBookmark.startTime) || !timeValid(editedBookmark.endTime);
             if (applyDisabled) { style::beginDisabled(); }
             if (ImGui::Button("Apply")) {
                 open = false;
@@ -307,9 +356,11 @@ private:
             wbm.listName = listName;
             for (auto [bookmarkName, bm] : config.conf["lists"][listName]["bookmarks"].items()) {
                 wbm.bookmarkName = bookmarkName;
-                wbm.bookmark.frequency = config.conf["lists"][listName]["bookmarks"][bookmarkName]["frequency"];
-                wbm.bookmark.bandwidth = config.conf["lists"][listName]["bookmarks"][bookmarkName]["bandwidth"];
-                wbm.bookmark.mode = config.conf["lists"][listName]["bookmarks"][bookmarkName]["mode"];
+                wbm.bookmark.frequency = bm["frequency"];
+                wbm.bookmark.bandwidth = bm["bandwidth"];
+                wbm.bookmark.startTime = bm.contains("startTime") ? (int)bm["startTime"] : 0;
+                wbm.bookmark.endTime = bm.contains("endTime") ? (int)bm["endTime"] : 0;
+                wbm.bookmark.mode = bm["mode"];
                 wbm.bookmark.selected = false;
                 wbm.clampedRectMin = ImVec2(-1, -1);
                 wbm.clampedRectMax = ImVec2(-1, -1);
@@ -344,6 +395,8 @@ private:
             FrequencyBookmark fbm;
             fbm.frequency = bm["frequency"];
             fbm.bandwidth = bm["bandwidth"];
+            fbm.startTime = bm.contains("startTime") ? (int)bm["startTime"] : 0;
+            fbm.endTime = bm.contains("endTime") ? (int)bm["endTime"] : 0;
             fbm.mode = bm["mode"];
             fbm.selected = false;
             bookmarks[bmName] = fbm;
@@ -357,6 +410,8 @@ private:
         for (auto [bmName, bm] : bookmarks) {
             config.conf["lists"][listName]["bookmarks"][bmName]["frequency"] = bm.frequency;
             config.conf["lists"][listName]["bookmarks"][bmName]["bandwidth"] = bm.bandwidth;
+            config.conf["lists"][listName]["bookmarks"][bmName]["startTime"] = bm.startTime;
+            config.conf["lists"][listName]["bookmarks"][bmName]["endTime"] = bm.endTime;
             config.conf["lists"][listName]["bookmarks"][bmName]["mode"] = bm.mode;
         }
         refreshWaterfallBookmarks(false);
@@ -634,6 +689,8 @@ private:
 
         std::vector<BookmarkRectangle> bookmarkRectangles[_this->bookmarkRows+1];
 
+        int now = getUTCTime();
+
         for (auto &bm : _this->waterfallBookmarks) {
             double centerXpos = args.min.x + std::round((bm.bookmark.frequency - args.lowFreq) * args.freqToPixelRatio);
 
@@ -695,14 +752,20 @@ private:
                 };
 
                 bookmarkRectangles[row].push_back(br);
+
+                ImU32 bookmarkColor = IM_COL32(255, 255, 0, 255);
+
+                if (!bookmarkOnline(bm.bookmark, now)) {
+                    bookmarkColor = IM_COL32(128, 128, 128, 255);
+                }
                 
-                args.window->DrawList->AddRectFilled(bm.clampedRectMin, bm.clampedRectMax, IM_COL32(255, 255, 0, 255));
+                args.window->DrawList->AddRectFilled(bm.clampedRectMin, bm.clampedRectMax, bookmarkColor);
                 
                 if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_TOP) {
-                    args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y + (nameSize.y * row)), ImVec2(centerXpos, args.max.y), IM_COL32(255, 255, 0, 255));
+                    args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y + (nameSize.y * row)), ImVec2(centerXpos, args.max.y), bookmarkColor);
                     args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), IM_COL32(0, 0, 0, 255), bm.bookmarkName.c_str());
                 } else {
-                    args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y), ImVec2(centerXpos, args.max.y - (nameSize.y * row)), IM_COL32(255, 255, 0, 255));
+                    args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y), ImVec2(centerXpos, args.max.y - (nameSize.y * row)), bookmarkColor);
                     args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.max.y - nameSize.y - (nameSize.y * row)), IM_COL32(0, 0, 0, 255), bm.bookmarkName.c_str());
                 }
             }
@@ -798,6 +861,8 @@ private:
             FrequencyBookmark fbm;
             fbm.frequency = bm["frequency"];
             fbm.bandwidth = bm["bandwidth"];
+            fbm.startTime = bm.contains("startTime") ? (int)bm["startTime"] : 0;
+            fbm.endTime = bm.contains("endTime") ? (int)bm["endTime"] : 0;
             fbm.mode = bm["mode"];
             fbm.selected = false;
             bookmarks[_name] = fbm;

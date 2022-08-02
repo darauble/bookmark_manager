@@ -18,13 +18,14 @@ Nothing else is changed, but users can now choose to use between 1 and 5 lines f
 
 * Bookmark arrangement in several (user chosen) rows, both top and bottom arrangements
 * Cashed position for mouse-over (no recalculation)
+* UTC start/end times of the broadcast (leave 0000 in both for all day broadcasts)
 
 ## Planned Features
 
 I also have other plans for Bookmark Manager in the future:
 
 * Give different colors for bookmark lists so they nice to identify
-* Add start/end time in UTC and week days for a bookmark
+* Add broadcast week days for a bookmark
 * Add a toggle to show/hide bookmarks that are not on time
 
 ## Compiling
