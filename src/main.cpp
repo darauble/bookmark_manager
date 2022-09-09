@@ -176,16 +176,6 @@ private:
         char nameBuf[1024];
         strcpy(nameBuf, editedBookmarkName.c_str());
 
-        if (!editOpen) {
-            // Set default values for new bookmark
-            editedBookmark.startTime = 0;
-            editedBookmark.endTime = 0;
-            
-            for (int i = 0; i < 7; i++) {
-                editedBookmark.days[i] = true;
-            }
-        }
-
         if (ImGui::BeginPopup(id.c_str(), ImGuiWindowFlags_NoResize)) {
             ImGui::BeginTable(("freq_manager_edit_table" + name).c_str(), 2);
 
@@ -566,6 +556,14 @@ private:
                     core::modComManager.callInterface(gui::waterfall.selectedVFO, RADIO_IFACE_CMD_GET_MODE, NULL, &mode);
                     _this->editedBookmark.mode = mode;
                 }
+            }
+
+            // Set default values for new bookmark
+            _this->editedBookmark.startTime = 0;
+            _this->editedBookmark.endTime = 0;
+
+            for (int i = 0; i < 7; i++) {
+                _this->editedBookmark.days[i] = true;
             }
 
             _this->editedBookmark.selected = false;
