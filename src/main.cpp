@@ -19,7 +19,7 @@ SDRPP_MOD_INFO{
     /* Name:            */ "bookmark_manager",
     /* Description:     */ "Bookmark manager module for SDR++",
     /* Author:          */ "Ryzerth;Zimm;Darau Ble",
-    /* Version:         */ 0, 1, 0,
+    /* Version:         */ 0, 1, 2,
     /* Max instances    */ 1
 };
 
@@ -30,6 +30,7 @@ struct FrequencyBookmark {
     bool selected;
     int startTime;
     int endTime;
+    bool days[7];
 };
 
 struct WaterfallBookmark {
@@ -69,7 +70,7 @@ enum {
 };
 
 const char* bookmarkDisplayModesTxt = "Off\0Top\0Bottom\0";
-const char* bookmarkRowsTxt = "1\0""2\0""3\0""4\0""5\0";
+const char* bookmarkRowsTxt = "1\0""2\0""3\0""4\0""5\0""6\0""7\0";
 
 bool compareWaterfallBookmarks(WaterfallBookmark wbm1, WaterfallBookmark wbm2) {
     return (wbm1.bookmark.frequency < wbm2.bookmark.frequency);
@@ -83,7 +84,11 @@ bool timeValid(int time) {
     return (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59);
 }
 
-bool bookmarkOnline(FrequencyBookmark bm, int now) {
+bool bookmarkOnline(FrequencyBookmark bm, int now, int weekDay) {
+    if (!bm.days[weekDay]) {
+        return false;
+    }
+
     if (bm.startTime == 0 && bm.endTime == 0) {
         return true;
     } else if (bm.startTime < bm.endTime) {
@@ -171,6 +176,16 @@ private:
         char nameBuf[1024];
         strcpy(nameBuf, editedBookmarkName.c_str());
 
+        if (!editOpen) {
+            // Set default values for new bookmark
+            editedBookmark.startTime = 0;
+            editedBookmark.endTime = 0;
+            
+            for (int i = 0; i < 7; i++) {
+                editedBookmark.days[i] = true;
+            }
+        }
+
         if (ImGui::BeginPopup(id.c_str(), ImGuiWindowFlags_NoResize)) {
             ImGui::BeginTable(("freq_manager_edit_table" + name).c_str(), 2);
 
@@ -178,7 +193,7 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Name");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(200);
+            ImGui::SetNextItemWidth(250);
             if (ImGui::InputText(("##freq_manager_edit_name" + name).c_str(), nameBuf, 1023)) {
                 editedBookmarkName = nameBuf;
             }
@@ -187,43 +202,65 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Frequency");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(200);
+            ImGui::SetNextItemWidth(250);
             ImGui::InputDouble(("##freq_manager_edit_freq" + name).c_str(), &editedBookmark.frequency);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Bandwidth");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(200);
+            ImGui::SetNextItemWidth(250);
             ImGui::InputDouble(("##freq_manager_edit_bw" + name).c_str(), &editedBookmark.bandwidth);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Start Time");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(200);
+            ImGui::SetNextItemWidth(250);
             ImGui::InputScalarN(
                 ("##freq_manager_edit_start_time" + name).c_str(),
                 ImGuiDataType_S32,
                 &editedBookmark.startTime, 1,
-                NULL, NULL, "%04d", NULL);
+                NULL, NULL, "%04d", 0);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("End Time");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(200);
+            ImGui::SetNextItemWidth(250);
             ImGui::InputScalarN(
                 ("##freq_manager_edit_end_time" + name).c_str(),
                 ImGuiDataType_S32,
                 &editedBookmark.endTime, 1,
-                NULL, NULL, "%04d", NULL);
+                NULL, NULL, "%04d", 0);
+            
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::LeftLabel("Days");
+            ImGui::TableSetColumnIndex(1);
+
+            ImGui::BeginGroup();
+            ImGui::Columns(5, "BookmarkDays", false);
+            ImGui::NextColumn();
+            ImGui::Checkbox("Su", &editedBookmark.days[0]);
+            ImGui::Checkbox("Th", &editedBookmark.days[4]);
+            ImGui::NextColumn();
+            ImGui::Checkbox("Mo", &editedBookmark.days[1]);
+            ImGui::Checkbox("Fr", &editedBookmark.days[5]);
+            ImGui::NextColumn();
+            ImGui::Checkbox("Tu", &editedBookmark.days[2]);
+            ImGui::Checkbox("Sa", &editedBookmark.days[6]);
+            ImGui::NextColumn();
+            ImGui::Checkbox("We", &editedBookmark.days[3]);
+
+            ImGui::Columns(1, "EndBookmarkDays", false);
+            ImGui::EndGroup();
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Mode");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(200);
+            ImGui::SetNextItemWidth(250);
 
             ImGui::Combo(("##freq_manager_edit_mode" + name).c_str(), &editedBookmark.mode, demodModeListTxt);
 
@@ -360,6 +397,16 @@ private:
                 wbm.bookmark.bandwidth = bm["bandwidth"];
                 wbm.bookmark.startTime = bm.contains("startTime") ? (int)bm["startTime"] : 0;
                 wbm.bookmark.endTime = bm.contains("endTime") ? (int)bm["endTime"] : 0;
+                
+                if (bm.contains("days")) {
+                    std::copy(bm["days"].begin(), bm["days"].end(), wbm.bookmark.days);
+                } else {
+                    for (int i = 0; i < 7; i++) {
+                        wbm.bookmark.days[i] = true;
+                    }
+                }
+
+
                 wbm.bookmark.mode = bm["mode"];
                 wbm.bookmark.selected = false;
                 wbm.clampedRectMin = ImVec2(-1, -1);
@@ -397,6 +444,15 @@ private:
             fbm.bandwidth = bm["bandwidth"];
             fbm.startTime = bm.contains("startTime") ? (int)bm["startTime"] : 0;
             fbm.endTime = bm.contains("endTime") ? (int)bm["endTime"] : 0;
+            
+            if (bm.contains("days")) {
+                std::copy(bm["days"].begin(), bm["days"].end(), fbm.days);
+            } else {
+                for (int i = 0; i < 7; i++) {
+                    fbm.days[i] = true;
+                }
+            }
+
             fbm.mode = bm["mode"];
             fbm.selected = false;
             bookmarks[bmName] = fbm;
@@ -412,6 +468,7 @@ private:
             config.conf["lists"][listName]["bookmarks"][bmName]["bandwidth"] = bm.bandwidth;
             config.conf["lists"][listName]["bookmarks"][bmName]["startTime"] = bm.startTime;
             config.conf["lists"][listName]["bookmarks"][bmName]["endTime"] = bm.endTime;
+            config.conf["lists"][listName]["bookmarks"][bmName]["days"] = bm.days;
             config.conf["lists"][listName]["bookmarks"][bmName]["mode"] = bm.mode;
         }
         refreshWaterfallBookmarks(false);
@@ -690,6 +747,7 @@ private:
         std::vector<BookmarkRectangle> bookmarkRectangles[_this->bookmarkRows+1];
 
         int now = getUTCTime();
+        int weekDay = getWeekDay();
 
         for (auto &bm : _this->waterfallBookmarks) {
             double centerXpos = args.min.x + std::round((bm.bookmark.frequency - args.lowFreq) * args.freqToPixelRatio);
@@ -755,7 +813,7 @@ private:
 
                 ImU32 bookmarkColor = IM_COL32(255, 255, 0, 255);
 
-                if (!bookmarkOnline(bm.bookmark, now)) {
+                if (!bookmarkOnline(bm.bookmark, now, weekDay)) {
                     bookmarkColor = IM_COL32(128, 128, 128, 255);
                 }
                 
@@ -863,6 +921,15 @@ private:
             fbm.bandwidth = bm["bandwidth"];
             fbm.startTime = bm.contains("startTime") ? (int)bm["startTime"] : 0;
             fbm.endTime = bm.contains("endTime") ? (int)bm["endTime"] : 0;
+            
+            if (bm.contains("days")) {
+                std::copy(bm["days"].begin(), bm["days"].end(), fbm.days);
+            } else {
+                for (int i = 0; i < 7; i++) {
+                    fbm.days[i] = true;
+                }
+            }
+
             fbm.mode = bm["mode"];
             fbm.selected = false;
             bookmarks[_name] = fbm;

@@ -12,3 +12,4 @@
 float getUTCTime();
 int getUTCHour();
 int getUTCMin();
+int getWeekDay();

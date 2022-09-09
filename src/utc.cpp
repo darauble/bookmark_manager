@@ -28,3 +28,9 @@ int getUTCMin()
     std::tm *now_tm = std::gmtime(&now);
     return now_tm->tm_min;
 }
+int getWeekDay()
+{
+    std::time_t now = std::time(0);
+    std::tm *now_tm = std::gmtime(&now);
+    return now_tm->tm_wday;
+}
