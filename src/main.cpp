@@ -877,12 +877,22 @@ private:
             applyBookmark(hoveredBookmark.bookmark, gui::waterfall.selectedVFO);
         }
 
+        char bookmarkDays[8];
+        bookmarkDays[7] = 0;
+
+        for (int i = 0; i < 7; i++) {
+            bookmarkDays[i] = hoveredBookmark.bookmark.days[i] ? 49 + i : '-';
+        }
+
         ImGui::BeginTooltip();
         ImGui::TextUnformatted(hoveredBookmarkName.c_str());
         ImGui::Separator();
         ImGui::Text("List: %s", hoveredBookmark.listName.c_str());
         ImGui::Text("Frequency: %s", utils::formatFreq(hoveredBookmark.bookmark.frequency).c_str());
         ImGui::Text("Bandwidth: %s", utils::formatFreq(hoveredBookmark.bookmark.bandwidth).c_str());
+        ImGui::Text("Start Time: %s", std::to_string(hoveredBookmark.bookmark.startTime).c_str());
+        ImGui::Text("End Time: %s", std::to_string(hoveredBookmark.bookmark.endTime).c_str());
+        ImGui::Text("Days: %s", bookmarkDays);
         ImGui::Text("Mode: %s", demodModeList[hoveredBookmark.bookmark.mode]);
         ImGui::EndTooltip();
     }
