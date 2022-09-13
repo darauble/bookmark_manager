@@ -23,6 +23,8 @@ SDRPP_MOD_INFO{
     /* Max instances    */ 1
 };
 
+constexpr auto MAX_LINES = 7;
+
 struct FrequencyBookmark {
     double frequency;
     double bandwidth;
@@ -742,7 +744,8 @@ private:
         BookmarkManagerModule* _this = (BookmarkManagerModule*)ctx;
         if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_OFF) { return; }
 
-        std::vector<BookmarkRectangle> bookmarkRectangles[_this->bookmarkRows+1];
+        // std::vector<BookmarkRectangle> bookmarkRectangles[_this->bookmarkRows+1];
+        std::vector<BookmarkRectangle> bookmarkRectangles[MAX_LINES];
 
         int now = getUTCTime();
         int weekDay = getWeekDay();
@@ -801,11 +804,12 @@ private:
                 bm.clampedRectMin = ImVec2(std::clamp<double>(rectMin.x, args.min.x, args.max.x), rectMin.y);
                 bm.clampedRectMax = ImVec2(std::clamp<double>(rectMax.x, args.min.x, args.max.x), rectMax.y);
 
-                BookmarkRectangle br = {
+                /* BookmarkRectangle br = {
                     .min = bmMinX,
                     .max = bmMaxX,
                     .row = row
-                };
+                };*/
+                BookmarkRectangle br = { bmMinX, bmMaxX, row };
 
                 bookmarkRectangles[row].push_back(br);
 
