@@ -19,7 +19,7 @@ SDRPP_MOD_INFO{
     /* Name:            */ "bookmark_manager",
     /* Description:     */ "Bookmark manager module for SDR++",
     /* Author:          */ "Ryzerth;Zimm;Darau Ble",
-    /* Version:         */ 0, 1, 2,
+    /* Version:         */ 0, 1, 3,
     /* Max instances    */ 1
 };
 
@@ -112,6 +112,7 @@ public:
         std::string selList = config.conf["selectedList"];
         bookmarkDisplayMode = config.conf["bookmarkDisplayMode"];
         bookmarkRows = config.conf["bookmarkRows"];
+        bookmarkRectangle = config.conf["bookmarkRectangle"];
         config.release();
 
         refreshLists();
@@ -698,6 +699,14 @@ private:
             config.release(true);
         }
 
+        ImGui::LeftLabel("Bookmark Rectangle");
+        ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
+        if (ImGui::Checkbox("##", &_this->bookmarkRectangle)) {
+            config.acquire();
+            config.conf["bookmarkRectangle"] = _this->bookmarkRectangle;
+            config.release(true);
+        }
+
 
         if (_this->selectedListName == "") { style::endDisabled(); }
 
@@ -744,8 +753,12 @@ private:
         BookmarkManagerModule* _this = (BookmarkManagerModule*)ctx;
         if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_OFF) { return; }
 
-        // std::vector<BookmarkRectangle> bookmarkRectangles[_this->bookmarkRows+1];
+        
+#ifdef _WIN32
         std::vector<BookmarkRectangle> bookmarkRectangles[MAX_LINES];
+#else
+        std::vector<BookmarkRectangle> bookmarkRectangles[_this->bookmarkRows+1];
+#endif
 
         int now = getUTCTime();
         int weekDay = getWeekDay();
@@ -814,19 +827,27 @@ private:
                 bookmarkRectangles[row].push_back(br);
 
                 ImU32 bookmarkColor = IM_COL32(255, 255, 0, 255);
+                ImU32 bookmarkTextColor = IM_COL32(0, 0, 0, 255);
+
 
                 if (!bookmarkOnline(bm.bookmark, now, weekDay)) {
                     bookmarkColor = IM_COL32(128, 128, 128, 255);
                 }
+
+                if (_this->bookmarkRectangle) {
+                    args.window->DrawList->AddRectFilled(bm.clampedRectMin, bm.clampedRectMax, bookmarkColor);
+                } else {
+                    bookmarkTextColor = bookmarkColor;
+                }
                 
-                args.window->DrawList->AddRectFilled(bm.clampedRectMin, bm.clampedRectMax, bookmarkColor);
+                
                 
                 if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_TOP) {
-                    args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y + (nameSize.y * row)), ImVec2(centerXpos, args.max.y), bookmarkColor);
-                    args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), IM_COL32(0, 0, 0, 255), bm.bookmarkName.c_str());
+                    args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y + (nameSize.y * (row + 1))), ImVec2(centerXpos, args.max.y), bookmarkColor);
+                    args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
                 } else {
-                    args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y), ImVec2(centerXpos, args.max.y - (nameSize.y * row)), bookmarkColor);
-                    args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.max.y - nameSize.y - (nameSize.y * row)), IM_COL32(0, 0, 0, 255), bm.bookmarkName.c_str());
+                    args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y), ImVec2(centerXpos, args.max.y - (nameSize.y * (row + 1))), bookmarkColor);
+                    args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.max.y - nameSize.y - (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
                 }
             }
         }
@@ -989,13 +1010,15 @@ private:
 
     int bookmarkDisplayMode = 0;
     int bookmarkRows = 0;
+    bool bookmarkRectangle;
 };
 
 MOD_EXPORT void _INIT_() {
     json def = json({});
     def["selectedList"] = "General";
     def["bookmarkDisplayMode"] = BOOKMARK_DISP_MODE_TOP;
-    def["bookmarkRows"] = 2;
+    def["bookmarkRows"] = 5;
+    def["bookmarkRectangle"] = true;
     def["lists"]["General"]["showOnWaterfall"] = true;
     def["lists"]["General"]["bookmarks"] = json::object();
 
@@ -1009,7 +1032,10 @@ MOD_EXPORT void _INIT_() {
         config.conf["bookmarkDisplayMode"] = BOOKMARK_DISP_MODE_TOP;
     }
     if (!config.conf.contains("bookmarkRows")) {
-        config.conf["bookmarkRows"] = 2;
+        config.conf["bookmarkRows"] = 5;
+    }
+    if (!config.conf.contains("bookmarkRectangle")) {
+        config.conf["bookmarkRectangle"] = true;
     }
     for (auto [listName, list] : config.conf["lists"].items()) {
         if (list.contains("bookmarks") && list.contains("showOnWaterfall") && list["showOnWaterfall"].is_boolean()) { continue; }

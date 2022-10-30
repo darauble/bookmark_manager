@@ -8,17 +8,23 @@ The original Frequency Manager included with the SDR++ has an inconvenience of a
 
 I really like SDR++ for its cleanliness, but this issue bugged me a lot. So I simply took the source of the Frequency Manager, copied it, renamed to Bookmark Manager and "fixed" it for myself.
 
-Nothing else is changed, but users can now choose to use between 1 and 7 lines for bookmarks to be automatically arranged:
+Users can now choose to use between 1 and 7 lines for bookmarks to be automatically arranged:
 
 ![Bookmark Manager arranges bookmarks in sevral rows](screenshots/sdrpp-bookmark-manager.png?raw=true "Bookmark Manager arranges bookmarks in sevral rows")
 
 Bookmarks with UTC, appropriate week days and currently not online are greyed out.
+
+Additionally, by marking "Bookmark Rectangle" to off bookmarks are displayed in text-only, without fat rectangle around:
+
+![Bookmark Manager arranges bookmarks in sevral rows](screenshots/sdrpp-bookmark-manager-text.png?raw=true "Bookmark Manager arranges bookmarks in sevral rows")
+
 
 ## Current Features
 
 (As opposed to original Frequency Manager)
 
 * Bookmark arrangement in up to 7 (user chosen) rows, both top and bottom arrangements
+* Bookmarks can be displayed in text-only, without fat rectangle
 * Cashed position for mouse-over (no recalculation)
 * UTC start/end times of the broadcast (leave 0000 in both for all day broadcasts)
 * Week days for a bookmark (all checked by default)
