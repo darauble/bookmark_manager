@@ -19,7 +19,7 @@ SDRPP_MOD_INFO{
     /* Name:            */ "bookmark_manager",
     /* Description:     */ "Bookmark manager module for SDR++",
     /* Author:          */ "Ryzerth;Zimm;Darau Ble",
-    /* Version:         */ 0, 1, 3,
+    /* Version:         */ 0, 1, 4,
     /* Max instances    */ 1
 };
 
@@ -38,6 +38,7 @@ struct FrequencyBookmark {
 struct WaterfallBookmark {
     std::string listName;
     std::string bookmarkName;
+    ImU32 color;
     FrequencyBookmark bookmark;
     ImVec2 clampedRectMin;
     ImVec2 clampedRectMax;
@@ -101,6 +102,26 @@ bool bookmarkOnline(FrequencyBookmark bm, int now, int weekDay) {
     } else {
         return false; // When start and end times are equal (except 0000).
     }
+}
+
+ImU32 hexStrToColor(std::string col) {
+    // std::cout << "hexStrToColor: " << col << std::endl;
+
+    int r, g, b;
+
+    if (col[0] == '#' && std::all_of(col.begin() + 1, col.end(), ::isxdigit)) {
+        r = std::stoi(col.substr(1, 2), NULL, 16);
+        g = std::stoi(col.substr(3, 2), NULL, 16);
+        b = std::stoi(col.substr(5, 2), NULL, 16);
+        // std::cout << "  color is: " << r << " " << g << " " << b << std:: endl;
+    } else {
+        r = 255;
+        g = 255;
+        b = 0;
+        // std::cout << "  color is not valid, returning default";
+    }
+
+    return IM_COL32(r, g, b, 255);
 }
 
 class BookmarkManagerModule : public ModuleManager::Instance {
@@ -384,6 +405,14 @@ private:
             if (!((bool)list["showOnWaterfall"])) { continue; }
             WaterfallBookmark wbm;
             wbm.listName = listName;
+            wbm.color = IM_COL32(255, 255, 0, 255);
+
+            if (list.contains("color")) {
+                // std::cout << "List " << listName << " is of color " << list["color"] << std::endl;
+                // std::cout << "Default color: " << wbm.color << std::endl;
+                wbm.color = hexStrToColor(list["color"]);
+            }
+
             for (auto [bookmarkName, bm] : config.conf["lists"][listName]["bookmarks"].items()) {
                 wbm.bookmarkName = bookmarkName;
                 wbm.bookmark.frequency = bm["frequency"];
@@ -826,7 +855,8 @@ private:
 
                 bookmarkRectangles[row].push_back(br);
 
-                ImU32 bookmarkColor = IM_COL32(255, 255, 0, 255);
+                // ImU32 bookmarkColor = IM_COL32(255, 255, 0, 255);
+                ImU32 bookmarkColor = bm.color;
                 ImU32 bookmarkTextColor = IM_COL32(0, 0, 0, 255);
 
 
