@@ -19,11 +19,11 @@ SDRPP_MOD_INFO{
     /* Name:            */ "bookmark_manager",
     /* Description:     */ "Bookmark manager module for SDR++",
     /* Author:          */ "Ryzerth;Zimm;Darau Ble",
-    /* Version:         */ 0, 1, 4,
+    /* Version:         */ 0, 1, 5,
     /* Max instances    */ 1
 };
 
-constexpr auto MAX_LINES = 7;
+constexpr auto MAX_LINES = 10;
 
 struct FrequencyBookmark {
     double frequency;
@@ -73,7 +73,7 @@ enum {
 };
 
 const char* bookmarkDisplayModesTxt = "Off\0Top\0Bottom\0";
-const char* bookmarkRowsTxt = "1\0""2\0""3\0""4\0""5\0""6\0""7\0";
+const char* bookmarkRowsTxt = "1\0""2\0""3\0""4\0""5\0""6\0""7\0""8\0""9\0""10\0";
 
 bool compareWaterfallBookmarks(WaterfallBookmark wbm1, WaterfallBookmark wbm2) {
     return (wbm1.bookmark.frequency < wbm2.bookmark.frequency);
@@ -122,6 +122,18 @@ ImU32 hexStrToColor(std::string col) {
     }
 
     return IM_COL32(r, g, b, 255);
+}
+
+ImVec4 color32ToVec4(ImU32 col) {
+    ImVec4 val;
+
+    float sc = 1.0f / 255.0f;
+    val.x = (float)((col >> IM_COL32_R_SHIFT) & 0xFF) * sc;
+    val.y = (float)((col >> IM_COL32_G_SHIFT) & 0xFF) * sc;
+    val.z = (float)((col >> IM_COL32_B_SHIFT) & 0xFF) * sc;
+    val.w = (float)((col >> IM_COL32_A_SHIFT) & 0xFF) * sc;
+
+    return val;
 }
 
 class BookmarkManagerModule : public ModuleManager::Instance {
@@ -325,7 +337,18 @@ private:
                 editedListName = nameBuf;
             }
 
-            bool alreadyExists = (std::find(listNames.begin(), listNames.end(), editedListName) != listNames.end());
+            ImGui::LeftLabel("Color");
+            ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
+
+            // wbm.color = hexStrToColor(list["color"]);
+
+
+            if (ImGui::ColorEdit3(("##list_color_" + name).c_str(), (float*)&editedListColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel)) {
+
+            }
+
+            // std::cout << "Edit list: " << firstEditedListName << " / " << editedListName.c_str() << " / " << nameBuf <<std::endl;
+            bool alreadyExists = (std::find(listNames.begin(), listNames.end(), editedListName) != listNames.end()) && strcmp(firstEditedListName.c_str(), nameBuf) != 0;
 
             if (strlen(nameBuf) == 0 || alreadyExists) { style::beginDisabled(); }
             if (ImGui::Button("Apply")) {
@@ -333,13 +356,20 @@ private:
 
                 config.acquire();
                 if (renameListOpen) {
-                    config.conf["lists"][editedListName] = config.conf["lists"][firstEditedListName];
-                    config.conf["lists"].erase(firstEditedListName);
+                    if (strcmp(firstEditedListName.c_str(), nameBuf) != 0) {
+                        config.conf["lists"][editedListName] = config.conf["lists"][firstEditedListName];
+                        config.conf["lists"].erase(firstEditedListName);
+                    }
                 }
                 else {
                     config.conf["lists"][editedListName]["showOnWaterfall"] = true;
                     config.conf["lists"][editedListName]["bookmarks"] = json::object();
                 }
+
+                char buf[16];
+                sprintf(buf, "#%02X%02X%02X", (int)roundf(editedListColor.x * 255), (int)roundf(editedListColor.y * 255), (int)roundf(editedListColor.z * 255));
+                config.conf["lists"][editedListName]["color"] = buf;
+
                 refreshWaterfallBookmarks(false);
                 config.release(true);
                 refreshLists();
@@ -523,6 +553,12 @@ private:
             _this->firstEditedListName = _this->listNames[_this->selectedListId];
             _this->editedListName = _this->firstEditedListName;
             _this->renameListOpen = true;
+
+            if (config.conf["lists"][_this->firstEditedListName].contains("color")) {
+                _this->editedListColor = color32ToVec4(hexStrToColor(config.conf["lists"][_this->firstEditedListName]["color"]));
+            } else {
+                _this->editedListColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+            }
         }
         if (_this->listNames.size() == 0) { style::endDisabled(); }
         ImGui::SameLine();
@@ -540,6 +576,7 @@ private:
                 _this->editedListName = buf;
             }
             _this->newListOpen = true;
+            _this->editedListColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
         }
         ImGui::SameLine();
         if (_this->selectedListName == "") { style::beginDisabled(); }
@@ -1035,6 +1072,7 @@ private:
 
     std::string editedListName;
     std::string firstEditedListName;
+    ImVec4 editedListColor;
 
     std::vector<WaterfallBookmark> waterfallBookmarks;
 

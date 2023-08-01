@@ -10,30 +10,32 @@ I really like SDR++ for its cleanliness, but this issue bugged me a lot. So I si
 
 Users can now choose to use between 1 and 7 lines for bookmarks to be automatically arranged:
 
-![Bookmark Manager arranges bookmarks in sevral rows](screenshots/sdrpp-bookmark-manager.png?raw=true "Bookmark Manager arranges bookmarks in sevral rows")
+![Bookmark Manager arranges bookmarks in several rows](screenshots/sdrpp-bookmark-manager.png?raw=true "Bookmark Manager arranges bookmarks in several rows")
 
 Bookmarks with UTC, appropriate week days and currently not online are greyed out.
 
 Additionally, by marking "Bookmark Rectangle" to off bookmarks are displayed in text-only, without fat rectangle around:
 
-![Bookmark Manager arranges bookmarks in sevral rows](screenshots/sdrpp-bookmark-manager-text.png?raw=true "Bookmark Manager arranges bookmarks in sevral rows")
+![Bookmark Manager arranges bookmarks in several rows](screenshots/sdrpp-bookmark-manager-text.png?raw=true "Bookmark Manager arranges bookmarks in several rows")
+
+And each list can be colored to easier distinguish between stations, types or whatever works for the user.
 
 
 ## Current Features
 
 (As opposed to original Frequency Manager)
 
-* Bookmark arrangement in up to 7 (user chosen) rows, both top and bottom arrangements
+* Bookmark arrangement in up to 10 (user chosen) rows, both top and bottom arrangements
 * Bookmarks can be displayed in text-only, without fat rectangle
 * Cashed position for mouse-over (no recalculation)
 * UTC start/end times of the broadcast (leave 0000 in both for all day broadcasts)
 * Week days for a bookmark (all checked by default)
+* Each list can be assigned an individual color
 
 ## Planned Features
 
 I also have other plans for Bookmark Manager in the future:
 
-* Give different colors for bookmark lists so they nice to identify
 * Add a toggle to show/hide bookmarks that are not on time
 
 ## Compiling
