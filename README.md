@@ -8,7 +8,7 @@ The original Frequency Manager included with the SDR++ has an inconvenience of a
 
 I really like SDR++ for its cleanliness, but this issue bugged me a lot. So I simply took the source of the Frequency Manager, copied it, renamed to Bookmark Manager and "fixed" it for myself.
 
-Users can now choose to use between 1 and 7 lines for bookmarks to be automatically arranged:
+Users can now choose to use between 1 and 10 lines for bookmarks to be automatically arranged:
 
 ![Bookmark Manager arranges bookmarks in several rows](screenshots/sdrpp-bookmark-manager.png?raw=true "Bookmark Manager arranges bookmarks in several rows")
 
