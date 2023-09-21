@@ -146,6 +146,7 @@ public:
         bookmarkDisplayMode = config.conf["bookmarkDisplayMode"];
         bookmarkRows = config.conf["bookmarkRows"];
         bookmarkRectangle = config.conf["bookmarkRectangle"];
+        bookmarkCentered = config.conf["bookmarkCentered"];
         config.release();
 
         refreshLists();
@@ -767,12 +768,20 @@ private:
 
         ImGui::LeftLabel("Bookmark Rectangle");
         ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
-        if (ImGui::Checkbox("##", &_this->bookmarkRectangle)) {
+        if (ImGui::Checkbox("##_freq_mgr_rect", &_this->bookmarkRectangle)) {
             config.acquire();
             config.conf["bookmarkRectangle"] = _this->bookmarkRectangle;
             config.release(true);
         }
 
+        //ImGui::SameLine();
+        ImGui::LeftLabel("Centered");
+        ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
+        if (ImGui::Checkbox("##_freq_mgr_cen", &_this->bookmarkCentered)) {
+            config.acquire();
+            config.conf["bookmarkCentered"] = _this->bookmarkCentered;
+            config.release(true);
+        }
 
         if (_this->selectedListName == "") { style::endDisabled(); }
 
@@ -836,8 +845,15 @@ private:
                 ImVec2 nameSize = ImGui::CalcTextSize(bm.bookmarkName.c_str());
 
                 int row = 0;
-                double bmMinX = centerXpos - (nameSize.x / 2) - 5;
-                double bmMaxX = centerXpos + (nameSize.x / 2) + 5;
+                double bmMinX = 0.0;
+                double bmMaxX = 0.0;
+                if (_this->bookmarkCentered) {
+                    bmMinX = centerXpos - (nameSize.x / 2) - 5;
+                    bmMaxX = centerXpos + (nameSize.x / 2) + 5;
+                } else {
+                    bmMinX = centerXpos - 5;
+                    bmMaxX = centerXpos + nameSize.x + 5;
+                }
                 // std::cout << "BR_X: " << bm.bookmarkName << " " << bmMinX << " " << bmMaxX << std::endl;
 
                 for (int i = 0; i < _this->bookmarkRows; i++) {
@@ -896,10 +912,18 @@ private:
                 
                 if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_TOP) {
                     args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y + (nameSize.y * (row + 1))), ImVec2(centerXpos, args.max.y), bookmarkColor);
-                    args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    if (_this->bookmarkCentered) {
+                        args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    } else {
+                        args.window->DrawList->AddText(ImVec2(bmMinX + 6, args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    }
                 } else {
                     args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y), ImVec2(centerXpos, args.max.y - (nameSize.y * (row + 1))), bookmarkColor);
-                    args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.max.y - nameSize.y - (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    if (_this->bookmarkCentered) {
+                        args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.max.y - nameSize.y - (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    } else {
+                        args.window->DrawList->AddText(ImVec2(bmMinX + 6, args.max.y - nameSize.y - (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    }
                 }
             }
         }
@@ -1064,6 +1088,7 @@ private:
     int bookmarkDisplayMode = 0;
     int bookmarkRows = 0;
     bool bookmarkRectangle;
+    bool bookmarkCentered;
 };
 
 MOD_EXPORT void _INIT_() {
@@ -1072,6 +1097,7 @@ MOD_EXPORT void _INIT_() {
     def["bookmarkDisplayMode"] = BOOKMARK_DISP_MODE_TOP;
     def["bookmarkRows"] = 5;
     def["bookmarkRectangle"] = true;
+    def["bookmarkCentered"] = true;
     def["lists"]["General"]["showOnWaterfall"] = true;
     def["lists"]["General"]["bookmarks"] = json::object();
 
@@ -1089,6 +1115,9 @@ MOD_EXPORT void _INIT_() {
     }
     if (!config.conf.contains("bookmarkRectangle")) {
         config.conf["bookmarkRectangle"] = true;
+    }
+    if (!config.conf.contains("bookmarkCentered")) {
+        config.conf["bookmarkCentered"] = true;
     }
     for (auto [listName, list] : config.conf["lists"].items()) {
         if (list.contains("bookmarks") && list.contains("showOnWaterfall") && list["showOnWaterfall"].is_boolean()) { continue; }
