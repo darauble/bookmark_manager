@@ -836,72 +836,18 @@ private:
                 ImVec2 nameSize = ImGui::CalcTextSize(bm.bookmarkName.c_str());
 
                 int row = 0;
-                double minLeftOverlap = DBL_MAX, minRightOverlap = DBL_MAX, minOverlap = DBL_MAX;
                 double bmMinX = centerXpos - (nameSize.x / 2) - 5;
                 double bmMaxX = centerXpos + (nameSize.x / 2) + 5;
                 // std::cout << "BR_X: " << bm.bookmarkName << " " << bmMinX << " " << bmMaxX << std::endl;
 
-/*
-                    count = _this->waterfallBookmarks.size();
-                    int linedraw = 0;
-                    for (int checklinedraw = 0; checklinedraw < MAX_WFBOOKMARKS_ROWS; checklinedraw++) {
-                        for (int j = 0; j < count; j++) {
-                            if (_this->waterfallBookmarks[j].bookmark.frequency >= args.lowFreq && _this->waterfallBookmarks[j].bookmark.frequency <= args.highFreq) {
-                                if (_this->waterfallBookmarks[j].row == checklinedraw) {
-                                    // check if there is overlap with previously drawn bookmark
-                                    if (((clampedRectMin.x >= _this->waterfallBookmarks[j].xmin && clampedRectMin.x <= _this->waterfallBookmarks[j].xmax) || (clampedRectMax.x >= _this->waterfallBookmarks[j].xmin && clampedRectMax.x <= _this->waterfallBookmarks[j].xmax)) || (_this->waterfallBookmarks[j].xmax <= clampedRectMax.x && _this->waterfallBookmarks[j].xmin >= clampedRectMin.x)) {
-                                        linedraw = checklinedraw + 1;
-                                        // next row
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-*/
-
-                for (int i = 0; i <= _this->bookmarkRows; i++) {
-                    double leftOverlap = 0.0, rightOverlap = 0.0;
-
+                for (int i = 0; i < _this->bookmarkRows; i++) {
                     for (auto const br: bookmarkRectangles[i]) {
                         if (((bmMinX >= br.min && bmMinX <= br.max) || (bmMaxX >= br.min && bmMaxX <= br.max)) || (br.max <= bmMaxX && br.min >= bmMinX)) {
                             row = i + 1;
-                            // next row
                             break;
                         }
                     }
                 }
-
-
-/*
-                for (int i = 0; i <= _this->bookmarkRows; i++) {
-                    double leftOverlap = 0.0, rightOverlap = 0.0;
-
-                    for (auto const br: bookmarkRectangles[i]) {
-                        if (bmMinX >= br.min && bmMinX <= br.max) {
-                            leftOverlap = br.max - bmMinX;
-                        } else if (br.min >= bmMinX && br.min <= bmMaxX) {
-                            leftOverlap = br.min - bmMinX;
-                        }
-
-                        if (bmMaxX >= br.min && bmMaxX <= br.max) {
-                            rightOverlap = bmMaxX - br.min;
-                        } else if (br.max >= bmMinX && br.max <= bmMaxX) {
-                            rightOverlap = bmMaxX - br.max;
-                        }
-                    }
-
-                    if (leftOverlap + rightOverlap < minOverlap) {
-                        minOverlap = leftOverlap + rightOverlap;
-                        row = i;
-                    }
-
-                    if (minOverlap == 0.0) {
-                        break;
-                    }
-                }
-*/
-                // std::cout << "BR_O: " << bm.bookmarkName << ", overlap " << minOverlap << ", row " << row << std::endl;
 
                 ImVec2 rectMin, rectMax;
 
