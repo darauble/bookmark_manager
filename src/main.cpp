@@ -841,11 +841,17 @@ private:
                 // std::cout << "BR_X: " << bm.bookmarkName << " " << bmMinX << " " << bmMaxX << std::endl;
 
                 for (int i = 0; i < _this->bookmarkRows; i++) {
+                    bool foundOnrow = false;
                     for (auto const br: bookmarkRectangles[i]) {
                         if (((bmMinX >= br.min && bmMinX <= br.max) || (bmMaxX >= br.min && bmMaxX <= br.max)) || (br.max <= bmMaxX && br.min >= bmMinX)) {
                             row = i + 1;
+                            foundOnrow = true;
                             break;
                         }
+                    }
+                    if (foundOnrow == false) {
+                        row = i;
+                        break; 
                     }
                 }
 
