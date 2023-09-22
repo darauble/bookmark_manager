@@ -33,6 +33,7 @@ struct FrequencyBookmark {
     int startTime;
     int endTime;
     bool days[7];
+    std::string notes;
 };
 
 struct WaterfallBookmark {
@@ -213,6 +214,9 @@ private:
         char nameBuf[1024];
         strcpy(nameBuf, editedBookmarkName.c_str());
 
+        char notesBuf[4096];
+        strcpy(notesBuf, editedBookmark.notes.c_str());
+
         if (ImGui::BeginPopup(id.c_str(), ImGuiWindowFlags_NoResize)) {
             ImGui::BeginTable(("freq_manager_edit_table" + name).c_str(), 2);
 
@@ -290,6 +294,16 @@ private:
             ImGui::SetNextItemWidth(250);
 
             ImGui::Combo(("##freq_manager_edit_mode" + name).c_str(), &editedBookmark.mode, demodModeListTxt);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::LeftLabel("Notes");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::SetNextItemWidth(250);
+
+            if (ImGui::InputText(("##freq_manager_edit_notes" + name).c_str(), notesBuf, 4095)) {
+                editedBookmark.notes = notesBuf;
+            }
 
             ImGui::EndTable();
 
@@ -459,6 +473,11 @@ private:
                     }
                 }
 
+                if (bm.contains("notes")) {
+                    wbm.bookmark.notes = bm["notes"];
+                } else {
+                    wbm.bookmark.notes = "";
+                }
 
                 wbm.bookmark.mode = bm["mode"];
                 wbm.bookmark.selected = false;
@@ -506,6 +525,12 @@ private:
                 }
             }
 
+            if (bm.contains("notes")) {
+                fbm.notes = bm["notes"];
+            } else {
+                fbm.notes = "";
+            }
+
             fbm.mode = bm["mode"];
             fbm.selected = false;
             bookmarks[bmName] = fbm;
@@ -522,6 +547,7 @@ private:
             config.conf["lists"][listName]["bookmarks"][bmName]["startTime"] = bm.startTime;
             config.conf["lists"][listName]["bookmarks"][bmName]["endTime"] = bm.endTime;
             config.conf["lists"][listName]["bookmarks"][bmName]["days"] = bm.days;
+            config.conf["lists"][listName]["bookmarks"][bmName]["notes"] = bm.notes;
             config.conf["lists"][listName]["bookmarks"][bmName]["mode"] = bm.mode;
         }
         refreshWaterfallBookmarks(false);
@@ -635,6 +661,8 @@ private:
             for (int i = 0; i < 7; i++) {
                 _this->editedBookmark.days[i] = true;
             }
+
+            _this->editedBookmark.notes = "";
 
             _this->editedBookmark.selected = false;
 
@@ -995,6 +1023,7 @@ private:
         ImGui::Text("End Time: %s", std::to_string(hoveredBookmark.bookmark.endTime).c_str());
         ImGui::Text("Days: %s", bookmarkDays);
         ImGui::Text("Mode: %s", demodModeList[hoveredBookmark.bookmark.mode]);
+        ImGui::Text("Notes: %s", hoveredBookmark.bookmark.notes.c_str());
         ImGui::EndTooltip();
     }
 
@@ -1037,6 +1066,12 @@ private:
                 for (int i = 0; i < 7; i++) {
                     fbm.days[i] = true;
                 }
+            }
+
+            if (bm.contains("notes")) {
+                fbm.notes = bm["notes"];
+            } else {
+                fbm.notes = "";
             }
 
             fbm.mode = bm["mode"];
