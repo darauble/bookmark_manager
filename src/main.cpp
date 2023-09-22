@@ -301,7 +301,7 @@ private:
             ImGui::TableSetColumnIndex(1);
             ImGui::SetNextItemWidth(250);
 
-            if (ImGui::InputText(("##freq_manager_edit_notes" + name).c_str(), notesBuf, 4095)) {
+            if (ImGui::InputTextMultiline(("##freq_manager_edit_notes" + name).c_str(), notesBuf, 4095)) {
                 editedBookmark.notes = notesBuf;
             }
 
