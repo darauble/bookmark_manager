@@ -34,6 +34,7 @@ struct FrequencyBookmark {
     int endTime;
     bool days[7];
     std::string notes;
+    std::string geoinfo;
 };
 
 struct WaterfallBookmark {
@@ -217,6 +218,9 @@ private:
         char notesBuf[4096];
         strcpy(notesBuf, editedBookmark.notes.c_str());
 
+        char geoinfoBuf[2048];
+        strcpy(geoinfoBuf, editedBookmark.geoinfo.c_str());
+
         if (ImGui::BeginPopup(id.c_str(), ImGuiWindowFlags_NoResize)) {
             ImGui::BeginTable(("freq_manager_edit_table" + name).c_str(), 2);
 
@@ -294,6 +298,17 @@ private:
             ImGui::SetNextItemWidth(250);
 
             ImGui::Combo(("##freq_manager_edit_mode" + name).c_str(), &editedBookmark.mode, demodModeListTxt);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::LeftLabel("Geo Info");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::SetNextItemWidth(250);
+
+            if (ImGui::InputText(("##freq_manager_edit_geoinfo" + name).c_str(), geoinfoBuf, 2047)) {
+                editedBookmark.geoinfo = geoinfoBuf;
+            }
+
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -473,6 +488,12 @@ private:
                     }
                 }
 
+                if (bm.contains("geoinfo")) {
+                    wbm.bookmark.geoinfo = bm["geoinfo"];
+                } else {
+                    wbm.bookmark.geoinfo = "";
+                }
+
                 if (bm.contains("notes")) {
                     wbm.bookmark.notes = bm["notes"];
                 } else {
@@ -525,6 +546,12 @@ private:
                 }
             }
 
+            if (bm.contains("geoinfo")) {
+                fbm.geoinfo = bm["geoinfo"];
+            } else {
+                fbm.geoinfo = "";
+            }
+
             if (bm.contains("notes")) {
                 fbm.notes = bm["notes"];
             } else {
@@ -547,6 +574,7 @@ private:
             config.conf["lists"][listName]["bookmarks"][bmName]["startTime"] = bm.startTime;
             config.conf["lists"][listName]["bookmarks"][bmName]["endTime"] = bm.endTime;
             config.conf["lists"][listName]["bookmarks"][bmName]["days"] = bm.days;
+            config.conf["lists"][listName]["bookmarks"][bmName]["geoinfo"] = bm.geoinfo;
             config.conf["lists"][listName]["bookmarks"][bmName]["notes"] = bm.notes;
             config.conf["lists"][listName]["bookmarks"][bmName]["mode"] = bm.mode;
         }
@@ -661,6 +689,8 @@ private:
             for (int i = 0; i < 7; i++) {
                 _this->editedBookmark.days[i] = true;
             }
+
+            _this->editedBookmark.geoinfo = "";
 
             _this->editedBookmark.notes = "";
 
@@ -1023,6 +1053,7 @@ private:
         ImGui::Text("End Time: %s", std::to_string(hoveredBookmark.bookmark.endTime).c_str());
         ImGui::Text("Days: %s", bookmarkDays);
         ImGui::Text("Mode: %s", demodModeList[hoveredBookmark.bookmark.mode]);
+        ImGui::Text("Geo info: %s", hoveredBookmark.bookmark.geoinfo.c_str());
         ImGui::Text("Notes: %s", hoveredBookmark.bookmark.notes.c_str());
         ImGui::EndTooltip();
     }
@@ -1066,6 +1097,12 @@ private:
                 for (int i = 0; i < 7; i++) {
                     fbm.days[i] = true;
                 }
+            }
+
+            if (bm.contains("geoinfo")) {
+                fbm.geoinfo = bm["geoinfo"];
+            } else {
+                fbm.geoinfo = "";
             }
 
             if (bm.contains("notes")) {
