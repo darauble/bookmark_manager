@@ -18,8 +18,8 @@
 SDRPP_MOD_INFO{
     /* Name:            */ "bookmark_manager",
     /* Description:     */ "Bookmark manager module for SDR++",
-    /* Author:          */ "Ryzerth;Zimm;Darau Ble",
-    /* Version:         */ 0, 1, 5,
+    /* Author:          */ "Ryzerth;Zimm;Darau Ble;Davide Rovelli",
+    /* Version:         */ 0, 1, 6,
     /* Max instances    */ 1
 };
 
@@ -1079,6 +1079,7 @@ private:
             return;
         }
 
+        int imported_entries = 0; 
         // Load every bookmark
         for (auto const [_name, bm] : importBookmarks["bookmarks"].items()) {
             if (bookmarks.find(_name) != bookmarks.end()) {
@@ -1114,10 +1115,12 @@ private:
             fbm.mode = bm["mode"];
             fbm.selected = false;
             bookmarks[_name] = fbm;
+            imported_entries++;
         }
         saveByName(selectedListName);
-
         fs.close();
+
+		flog::info("Imported {0} entries", imported_entries);
     }
 
     void exportBookmarks(std::string path) {
