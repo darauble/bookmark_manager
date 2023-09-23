@@ -202,7 +202,7 @@ private:
                 }
             }
             tuner::tune(tuner::TUNER_MODE_NORMAL, vfoName, bm.frequency);
-        }
+        }        
     }
 
     bool bookmarkEditDialog() {
@@ -588,8 +588,23 @@ private:
 
         // TODO: Replace with something that won't iterate every frame
         std::vector<std::string> selectedNames;
-        for (auto& [name, bm] : _this->bookmarks) {
-            if (bm.selected) { selectedNames.push_back(name); }
+/*
+        // First check if there is a clicked bookmark
+        for (auto wbm : _this->waterfallBookmarks) {   
+            if (wbm.bookmark.selected) {
+                selectedNames.push_back(wbm.bookmarkName);
+            }
+        }
+*/
+
+        // if not go for the standard way
+        if (selectedNames.size() == 0)
+        {
+            for (auto& [name, bm] : _this->bookmarks) {
+                if (bm.selected) { 
+                    selectedNames.push_back(name); 
+                }
+            }
         }
 
         float lineHeight = ImGui::GetTextLineHeightWithSpacing();
@@ -1006,7 +1021,7 @@ private:
         WaterfallBookmark hoveredBookmark;
         std::string hoveredBookmarkName;
 
-        for (auto bm : _this->waterfallBookmarks) {
+        for (auto& bm : _this->waterfallBookmarks) {
             if (bm.bookmark.frequency >= args.lowFreq && bm.bookmark.frequency <= args.highFreq) {
                 if (ImGui::IsMouseHoveringRect(bm.clampedRectMin, bm.clampedRectMax)) {
                     inALabel = true;
@@ -1034,6 +1049,14 @@ private:
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
             _this->mouseClickedInLabel = true;
             applyBookmark(hoveredBookmark.bookmark, gui::waterfall.selectedVFO);
+            /* search in _this->bookmarks the selected hoveredBookmark */
+            for (auto& [name, b] : _this->bookmarks) {
+                if (name == hoveredBookmarkName) {
+                    b.selected = true;
+                } else {
+                    b.selected = false;
+                }
+            }
         }
 
         char bookmarkDays[8];
