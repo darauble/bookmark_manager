@@ -748,7 +748,7 @@ private:
         }
 
         // Bookmark list
-        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY, ImVec2(0, 200))) {
+        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable, ImVec2(0, 200))) {
             ImGui::TableSetupColumn("Name");
             ImGui::TableSetupColumn("Bookmark");
             ImGui::TableSetupScrollFreeze(2, 1);
@@ -824,18 +824,14 @@ private:
             config.release(true);
         }
 
-        //ImGui::LeftLabel("Rows of bookmarks");
+        ImGui::LeftLabel("Rows of bookmarks");
         ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
-        if (ImGui::Combo(("Rows of bookmarks##_freq_mgr_rob_" + _this->name).c_str(), &_this->bookmarkRows, bookmarkRowsTxt)) {
+        if (ImGui::Combo(("##_freq_mgr_rob_" + _this->name).c_str(), &_this->bookmarkRows, bookmarkRowsTxt)) {
             config.acquire();
             config.conf["bookmarkRows"] = _this->bookmarkRows;
             config.release(true);
         }
 
-        //ImGui::BeginGroup();
-        //ImGui::Columns(2, "##_freq_mgr_group", false);
-        //ImGui::LeftLabel("Rectangles");
-        //ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
         if (ImGui::Checkbox("Rectangles##_freq_mgr_rect", &_this->bookmarkRectangle)) {
             config.acquire();
             config.conf["bookmarkRectangle"] = _this->bookmarkRectangle;
@@ -843,20 +839,12 @@ private:
         }
 
         ImGui::SameLine();
-        //ImGui::NextColumn();
-        //ImGui::LeftLabel("Centered");
-        //ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
         if (ImGui::Checkbox("Centered##_freq_mgr_cen", &_this->bookmarkCentered)) {
             config.acquire();
             config.conf["bookmarkCentered"] = _this->bookmarkCentered;
             config.release(true);
         }
-        //ImGui::Columns(1, "##_freq_mgr_end_group", false);
-        //ImGui::EndGroup();
 
-        //ImGui::SameLine();
-        //ImGui::LeftLabel("Avoid clutter on last row");
-        //ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
         if (ImGui::Checkbox("Avoid clutter on last row##_freq_mgr_noClut", &_this->bookmarkNoClutter)) {
             config.acquire();
             config.conf["bookmarkNoClutter"] = _this->bookmarkNoClutter;
