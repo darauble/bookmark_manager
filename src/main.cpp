@@ -149,6 +149,7 @@ public:
         bookmarkRows = config.conf["bookmarkRows"];
         bookmarkRectangle = config.conf["bookmarkRectangle"];
         bookmarkCentered = config.conf["bookmarkCentered"];
+        bookmarkNoClutter = config.conf["bookmarkNoClutter"];
         config.release();
 
         refreshLists();
@@ -823,28 +824,42 @@ private:
             config.release(true);
         }
 
-        ImGui::LeftLabel("Rows of bookmarks");
+        //ImGui::LeftLabel("Rows of bookmarks");
         ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
-        if (ImGui::Combo(("##_freq_mgr_rob_" + _this->name).c_str(), &_this->bookmarkRows, bookmarkRowsTxt)) {
+        if (ImGui::Combo(("Rows of bookmarks##_freq_mgr_rob_" + _this->name).c_str(), &_this->bookmarkRows, bookmarkRowsTxt)) {
             config.acquire();
             config.conf["bookmarkRows"] = _this->bookmarkRows;
             config.release(true);
         }
 
-        ImGui::LeftLabel("Bookmark Rectangle");
-        ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
-        if (ImGui::Checkbox("##_freq_mgr_rect", &_this->bookmarkRectangle)) {
+        //ImGui::BeginGroup();
+        //ImGui::Columns(2, "##_freq_mgr_group", false);
+        //ImGui::LeftLabel("Rectangles");
+        //ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
+        if (ImGui::Checkbox("Rectangles##_freq_mgr_rect", &_this->bookmarkRectangle)) {
             config.acquire();
             config.conf["bookmarkRectangle"] = _this->bookmarkRectangle;
             config.release(true);
         }
 
-        //ImGui::SameLine();
-        ImGui::LeftLabel("Centered");
-        ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
-        if (ImGui::Checkbox("##_freq_mgr_cen", &_this->bookmarkCentered)) {
+        ImGui::SameLine();
+        //ImGui::NextColumn();
+        //ImGui::LeftLabel("Centered");
+        //ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
+        if (ImGui::Checkbox("Centered##_freq_mgr_cen", &_this->bookmarkCentered)) {
             config.acquire();
             config.conf["bookmarkCentered"] = _this->bookmarkCentered;
+            config.release(true);
+        }
+        //ImGui::Columns(1, "##_freq_mgr_end_group", false);
+        //ImGui::EndGroup();
+
+        //ImGui::SameLine();
+        //ImGui::LeftLabel("Avoid clutter on last row");
+        //ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
+        if (ImGui::Checkbox("Avoid clutter on last row##_freq_mgr_noClut", &_this->bookmarkNoClutter)) {
+            config.acquire();
+            config.conf["bookmarkNoClutter"] = _this->bookmarkNoClutter;
             config.release(true);
         }
 
@@ -936,7 +951,7 @@ private:
                     }
                 }
                 // avoid clutter on the last row
-                if (row == _this->bookmarkRows) {
+                if (row == _this->bookmarkRows && _this->bookmarkNoClutter) {
                    foundOnrow = false;
                     for (auto const br: bookmarkRectangles[row]) {
                         if (((bmMinX >= br.min && bmMinX <= br.max) || (bmMaxX >= br.min && bmMaxX <= br.max)) || (br.max <= bmMaxX && br.min >= bmMinX)) {
@@ -1198,6 +1213,7 @@ private:
     int bookmarkRows = 0;
     bool bookmarkRectangle;
     bool bookmarkCentered;
+    bool bookmarkNoClutter;
 };
 
 MOD_EXPORT void _INIT_() {
@@ -1207,6 +1223,7 @@ MOD_EXPORT void _INIT_() {
     def["bookmarkRows"] = 5;
     def["bookmarkRectangle"] = true;
     def["bookmarkCentered"] = true;
+    def["bookmarkNoClutter"] = false;
     def["lists"]["General"]["showOnWaterfall"] = true;
     def["lists"]["General"]["bookmarks"] = json::object();
 
@@ -1228,6 +1245,10 @@ MOD_EXPORT void _INIT_() {
     if (!config.conf.contains("bookmarkCentered")) {
         config.conf["bookmarkCentered"] = true;
     }
+    if (!config.conf.contains("bookmarkNoClutter")) {
+        config.conf["bookmarkNoClutter"] = false;
+    }
+
     for (auto [listName, list] : config.conf["lists"].items()) {
         if (list.contains("bookmarks") && list.contains("showOnWaterfall") && list["showOnWaterfall"].is_boolean()) { continue; }
         json newList;
