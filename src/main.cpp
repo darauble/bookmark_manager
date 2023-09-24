@@ -920,9 +920,9 @@ private:
                     bmMaxX = centerXpos + nameSize.x + 5;
                 }
                 // std::cout << "BR_X: " << bm.bookmarkName << " " << bmMinX << " " << bmMaxX << std::endl;
-
+                bool foundOnrow = false;
                 for (int i = 0; i < _this->bookmarkRows; i++) {
-                    bool foundOnrow = false;
+                    foundOnrow = false;
                     for (auto const br: bookmarkRectangles[i]) {
                         if (((bmMinX >= br.min && bmMinX <= br.max) || (bmMaxX >= br.min && bmMaxX <= br.max)) || (br.max <= bmMaxX && br.min >= bmMinX)) {
                             row = i + 1;
@@ -934,6 +934,17 @@ private:
                         row = i;
                         break; 
                     }
+                }
+                // avoid clutter on the last row
+                if (row == _this->bookmarkRows) {
+                   foundOnrow = false;
+                    for (auto const br: bookmarkRectangles[row]) {
+                        if (((bmMinX >= br.min && bmMinX <= br.max) || (bmMaxX >= br.min && bmMaxX <= br.max)) || (br.max <= bmMaxX && br.min >= bmMinX)) {
+                            foundOnrow = true;
+                            break;
+                        }
+                    }
+                    if (foundOnrow) { continue; }
                 }
 
                 ImVec2 rectMin, rectMax;
