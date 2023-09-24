@@ -588,14 +588,6 @@ private:
 
         // TODO: Replace with something that won't iterate every frame
         std::vector<std::string> selectedNames;
-/*
-        // First check if there is a clicked bookmark
-        for (auto wbm : _this->waterfallBookmarks) {   
-            if (wbm.bookmark.selected) {
-                selectedNames.push_back(wbm.bookmarkName);
-            }
-        }
-*/
 
         // if not go for the standard way
         if (selectedNames.size() == 0)
@@ -1049,6 +1041,14 @@ private:
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
             _this->mouseClickedInLabel = true;
             applyBookmark(hoveredBookmark.bookmark, gui::waterfall.selectedVFO);
+            /* if the clicked list is different from the selected, switch */
+            if (hoveredBookmark.listName != _this->selectedListName) {
+                _this->loadByName(hoveredBookmark.listName);
+                _this->selectedListName = hoveredBookmark.listName;
+                config.acquire();
+                config.conf["selectedList"] = _this->selectedListName;
+                config.release(true);
+            }
             /* search in _this->bookmarks the selected hoveredBookmark */
             for (auto& [name, b] : _this->bookmarks) {
                 if (name == hoveredBookmarkName) {
@@ -1056,7 +1056,7 @@ private:
                 } else {
                     b.selected = false;
                 }
-            }
+            }                
         }
 
         char bookmarkDays[8];
