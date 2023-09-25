@@ -81,6 +81,14 @@ bool compareWaterfallBookmarks(WaterfallBookmark wbm1, WaterfallBookmark wbm2) {
     return (wbm1.bookmark.frequency < wbm2.bookmark.frequency);
 }
 
+/*bool compareBookmarksName(FrequencyBookmark bm1, FrequencyBookmark bm2) {
+    return (bm1. < bm2.frequency);
+}*/
+
+bool compareBookmarksFreq(FrequencyBookmark bm1, FrequencyBookmark bm2) {
+    return (bm1.frequency < bm2.frequency);
+}
+
 bool timeValid(int time) {
     // Check HHMM time validity.
     int hours = time / 100;
@@ -748,11 +756,31 @@ private:
         }
 
         // Bookmark list
-        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable, ImVec2(0, 200))) {
+        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti, ImVec2(0, 200))) {
             ImGui::TableSetupColumn("Name");
             ImGui::TableSetupColumn("Bookmark");
             ImGui::TableSetupScrollFreeze(2, 1);
             ImGui::TableHeadersRow();
+
+            // codeium, please add code here: sort by column name or by column bookmark when the column header is clicked
+            if (ImGui::TableGetSortSpecs() != nullptr) {
+                ImGuiTableSortSpecs* sortSpecs = ImGui::TableGetSortSpecs();
+                if (sortSpecs->SpecsCount > 0) {
+                    ImGuiTableColumnSortSpecs spec = sortSpecs->Specs[0];
+                    if (spec.ColumnUserID == 0) {
+                        // Sort by Name column
+                        //std::sort(_this->bookmarks.begin(), _this->bookmarks.end());
+                    } else if (spec.ColumnUserID == 1) {
+                        // Sort by Bookmark column
+                        std::sort(_this->bookmarks.begin(), _this->bookmarks.end(), compareBookmarksFreq);
+                    }
+                    if (spec.SortDirection == ImGuiSortDirection_Descending) {
+                        //std::reverse(_this->bookmarks.begin(), _this->bookmarks.end());
+                    }
+                }
+            }            
+             
+
             for (auto& [name, bm] : _this->bookmarks) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
@@ -1202,6 +1230,8 @@ private:
     bool bookmarkRectangle;
     bool bookmarkCentered;
     bool bookmarkNoClutter;
+    int currentSortColumn = -1;
+    bool currentSortAscending = true;    
 };
 
 MOD_EXPORT void _INIT_() {
