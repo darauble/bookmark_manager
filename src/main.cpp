@@ -756,26 +756,37 @@ private:
         }
 
         // Bookmark list
-        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti, ImVec2(0, 200))) {
-            ImGui::TableSetupColumn("Name");
-            ImGui::TableSetupColumn("Bookmark");
+        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable, ImVec2(0, 200))) {
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_DefaultSort, 0.0f, 0);
+            ImGui::TableSetupColumn("Bookmark", ImGuiTableColumnFlags_DefaultSort, 0.0f, 1);
             ImGui::TableSetupScrollFreeze(2, 1);
             ImGui::TableHeadersRow();
 
             // codeium, please add code here: sort by column name or by column bookmark when the column header is clicked
             if (ImGui::TableGetSortSpecs() != nullptr) {
                 ImGuiTableSortSpecs* sortSpecs = ImGui::TableGetSortSpecs();
-                if (sortSpecs->SpecsCount > 0) {
-                    ImGuiTableColumnSortSpecs spec = sortSpecs->Specs[0];
-                    if (spec.ColumnUserID == 0) {
-                        // Sort by Name column
-                        //std::sort(_this->bookmarks.begin(), _this->bookmarks.end());
-                    } else if (spec.ColumnUserID == 1) {
-                        // Sort by Bookmark column
-                        std::sort(_this->bookmarks.begin(), _this->bookmarks.end(), compareBookmarksFreq);
-                    }
-                    if (spec.SortDirection == ImGuiSortDirection_Descending) {
-                        //std::reverse(_this->bookmarks.begin(), _this->bookmarks.end());
+
+                if (sortSpecs->SpecsDirty) {
+                    if (sortSpecs->SpecsCount > 0) {
+                        ImGuiTableColumnSortSpecs spec = sortSpecs->Specs[0];
+                        if (spec.ColumnUserID == 0) {
+                            // Sort by Name column
+                            //std::sort(_this->bookmarks.begin(), _this->bookmarks.end());
+                            flog::info("Sort by Name column");
+                        } else if (spec.ColumnUserID == 1) {
+                            // Sort by Bookmark column
+                            //std::sort(_this->bookmarks.begin(), _this->bookmarks.end(), compareBookmarksFreq);
+                            flog::info("Sort by Bookmarks column");
+                        }
+                        if (spec.SortDirection == ImGuiSortDirection_Descending) {
+                            //std::reverse(_this->bookmarks.begin(), _this->bookmarks.end());
+                            flog::info("Sort Descending");
+                        }
+                        if (spec.SortDirection == ImGuiSortDirection_Ascending) {
+                            //std::reverse(_this->bookmarks.begin(), _this->bookmarks.end());
+                            flog::info("Sort Ascending");
+                        }
+                        sortSpecs->SpecsDirty = false;                
                     }
                 }
             }            
