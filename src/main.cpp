@@ -829,12 +829,17 @@ private:
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImVec2 min = ImGui::GetCursorPos();
+                
+                bool bufferSelect = bm.selected;
 
-                if (ImGui::Selectable((name + "##_freq_mgr_bkm_name_" + _this->name).c_str(), &bm.selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SelectOnClick)) {
+                if (ImGui::Selectable((name + "##_freq_mgr_bkm_name_" + _this->name).c_str(), &bufferSelect, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SelectOnClick)) {
                     // if shift or control isn't pressed, deselect all others
                     if (!ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyCtrl) {
                         for (auto& [_name, _bm] : _this->bookmarks) {
-                            if (name == _name) { continue; }
+                            if (name == _name) {
+                                _bm.selected = bufferSelect; 
+                                continue; 
+                            }
                             _bm.selected = false;
                         }
                     }
@@ -1252,8 +1257,8 @@ private:
     EventHandler<ImGui::WaterFall::FFTRedrawArgs> fftRedrawHandler;
     EventHandler<ImGui::WaterFall::InputHandlerArgs> inputHandler;
 
-    std::map<std::string, FrequencyBookmark> bookmarks;
-    std::map<std::string, FrequencyBookmark> sortedBookmarks;
+    //std::map<std::string, FrequencyBookmark> bookmarks;
+    std::vector<std::pair<std::string, FrequencyBookmark>> bookmarks;
     std::vector<std::pair<std::string, FrequencyBookmark>> pairs;
 
     std::string editedBookmarkName = "";
