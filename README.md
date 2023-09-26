@@ -32,6 +32,12 @@ And each list can be colored to easier distinguish between stations, types or wh
 * Week days for a bookmark (all checked by default)
 * Each list can be assigned an individual color
 
+Features introduced by David Rovelli:
+* Labels centered or on the side (flag like)
+* Limit clutter to last row and stopping clutter by skipping too many bookmarks
+* Clicking on bookmark also selects it in the manager list
+* Additional data fields for geoinfo and personal notes
+
 ## Planned Features
 
 I also have other plans for Bookmark Manager in the future:
