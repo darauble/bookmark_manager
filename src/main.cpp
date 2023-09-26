@@ -81,9 +81,15 @@ bool compareWaterfallBookmarks(WaterfallBookmark wbm1, WaterfallBookmark wbm2) {
     return (wbm1.bookmark.frequency < wbm2.bookmark.frequency);
 }
 
-/*bool compareBookmarksName(FrequencyBookmark bm1, FrequencyBookmark bm2) {
-    return (bm1. < bm2.frequency);
-}*/
+// Define the comparator lambda function
+auto comparatorFreqAsc = [](const std::pair<std::string, FrequencyBookmark>& a, const std::pair<std::string, FrequencyBookmark>& b) {
+    return a.second.frequency < b.second.frequency;
+};
+
+auto comparatorFreqDesc = [](const std::pair<std::string, FrequencyBookmark>& a, const std::pair<std::string, FrequencyBookmark>& b) {
+    return a.second.frequency > b.second.frequency;
+};
+
 
 bool compareBookmarksFreq(FrequencyBookmark bm1, FrequencyBookmark bm2) {
     return (bm1.frequency < bm2.frequency);
@@ -773,18 +779,45 @@ private:
                             // Sort by Name column
                             //std::sort(_this->bookmarks.begin(), _this->bookmarks.end());
                             flog::info("Sort by Name column");
+                            if (spec.SortDirection == ImGuiSortDirection_Descending) {
+                                flog::info("Sort Descending");
+                                _this->pairs.clear();
+                            }
+                            if (spec.SortDirection == ImGuiSortDirection_Ascending) {
+                                flog::info("Sort Ascending");
+                                _this->pairs.clear();
+                                _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                            }                            
                         } else if (spec.ColumnUserID == 1) {
                             // Sort by Bookmark column
-                            //std::sort(_this->bookmarks.begin(), _this->bookmarks.end(), compareBookmarksFreq);
                             flog::info("Sort by Bookmarks column");
-                        }
-                        if (spec.SortDirection == ImGuiSortDirection_Descending) {
-                            //std::reverse(_this->bookmarks.begin(), _this->bookmarks.end());
-                            flog::info("Sort Descending");
-                        }
-                        if (spec.SortDirection == ImGuiSortDirection_Ascending) {
-                            //std::reverse(_this->bookmarks.begin(), _this->bookmarks.end());
-                            flog::info("Sort Ascending");
+                            if (spec.SortDirection == ImGuiSortDirection_Descending) {
+                                //std::reverse(_this->bookmarks.begin(), _this->bookmarks.end());
+                                flog::info("Sort Descending");
+                                _this->pairs.clear();  
+                                _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                                
+                                // Sort the vector of pairs
+                                std::sort(_this->pairs.begin(), _this->pairs.end(), comparatorFreqDesc);
+                            }
+                            if (spec.SortDirection == ImGuiSortDirection_Ascending) {
+                                //std::reverse(_this->bookmarks.begin(), _this->bookmarks.end());
+                                flog::info("Sort Ascending");
+                                _this->pairs.clear();
+                                _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                                
+                                // Sort the vector of pairs
+                                std::sort(_this->pairs.begin(), _this->pairs.end(), comparatorFreqAsc);
+/*
+                                // Clear the sortedBookmarks map
+                                _this->sortedBookmarks.clear();
+
+                                // Insert the sorted pairs back into the sortedBookmarks map
+                                for (const auto& pair : _this->pairs) {
+                                    _this->sortedBookmarks.insert(pair);
+                               }
+*/
+                            }
                         }
                         sortSpecs->SpecsDirty = false;                
                     }
@@ -792,7 +825,7 @@ private:
             }            
              
 
-            for (auto& [name, bm] : _this->bookmarks) {
+            for (auto& [name, bm] : _this->pairs) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImVec2 min = ImGui::GetCursorPos();
@@ -1220,6 +1253,8 @@ private:
     EventHandler<ImGui::WaterFall::InputHandlerArgs> inputHandler;
 
     std::map<std::string, FrequencyBookmark> bookmarks;
+    std::map<std::string, FrequencyBookmark> sortedBookmarks;
+    std::vector<std::pair<std::string, FrequencyBookmark>> pairs;
 
     std::string editedBookmarkName = "";
     std::string firstEditedBookmarkName = "";
