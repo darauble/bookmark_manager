@@ -18,8 +18,8 @@
 SDRPP_MOD_INFO{
     /* Name:            */ "bookmark_manager",
     /* Description:     */ "Bookmark manager module for SDR++",
-    /* Author:          */ "Ryzerth;Zimm;Darau Ble",
-    /* Version:         */ 0, 1, 5,
+    /* Author:          */ "Ryzerth;Zimm;Darau Ble;Davide Rovelli",
+    /* Version:         */ 0, 1, 6,
     /* Max instances    */ 1
 };
 
@@ -33,6 +33,8 @@ struct FrequencyBookmark {
     int startTime;
     int endTime;
     bool days[7];
+    std::string notes;
+    std::string geoinfo;
 };
 
 struct WaterfallBookmark {
@@ -146,6 +148,8 @@ public:
         bookmarkDisplayMode = config.conf["bookmarkDisplayMode"];
         bookmarkRows = config.conf["bookmarkRows"];
         bookmarkRectangle = config.conf["bookmarkRectangle"];
+        bookmarkCentered = config.conf["bookmarkCentered"];
+        bookmarkNoClutter = config.conf["bookmarkNoClutter"];
         config.release();
 
         refreshLists();
@@ -199,7 +203,7 @@ private:
                 }
             }
             tuner::tune(tuner::TUNER_MODE_NORMAL, vfoName, bm.frequency);
-        }
+        }        
     }
 
     bool bookmarkEditDialog() {
@@ -211,6 +215,12 @@ private:
 
         char nameBuf[1024];
         strcpy(nameBuf, editedBookmarkName.c_str());
+
+        char notesBuf[4096];
+        strcpy(notesBuf, editedBookmark.notes.c_str());
+
+        char geoinfoBuf[2048];
+        strcpy(geoinfoBuf, editedBookmark.geoinfo.c_str());
 
         if (ImGui::BeginPopup(id.c_str(), ImGuiWindowFlags_NoResize)) {
             ImGui::BeginTable(("freq_manager_edit_table" + name).c_str(), 2);
@@ -289,6 +299,27 @@ private:
             ImGui::SetNextItemWidth(250);
 
             ImGui::Combo(("##freq_manager_edit_mode" + name).c_str(), &editedBookmark.mode, demodModeListTxt);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::LeftLabel("Geo Info");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::SetNextItemWidth(250);
+
+            if (ImGui::InputText(("##freq_manager_edit_geoinfo" + name).c_str(), geoinfoBuf, 2047)) {
+                editedBookmark.geoinfo = geoinfoBuf;
+            }
+
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::LeftLabel("Notes");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::SetNextItemWidth(250);
+
+            if (ImGui::InputTextMultiline(("##freq_manager_edit_notes" + name).c_str(), notesBuf, 4095)) {
+                editedBookmark.notes = notesBuf;
+            }
 
             ImGui::EndTable();
 
@@ -458,6 +489,17 @@ private:
                     }
                 }
 
+                if (bm.contains("geoinfo")) {
+                    wbm.bookmark.geoinfo = bm["geoinfo"];
+                } else {
+                    wbm.bookmark.geoinfo = "";
+                }
+
+                if (bm.contains("notes")) {
+                    wbm.bookmark.notes = bm["notes"];
+                } else {
+                    wbm.bookmark.notes = "";
+                }
 
                 wbm.bookmark.mode = bm["mode"];
                 wbm.bookmark.selected = false;
@@ -505,6 +547,18 @@ private:
                 }
             }
 
+            if (bm.contains("geoinfo")) {
+                fbm.geoinfo = bm["geoinfo"];
+            } else {
+                fbm.geoinfo = "";
+            }
+
+            if (bm.contains("notes")) {
+                fbm.notes = bm["notes"];
+            } else {
+                fbm.notes = "";
+            }
+
             fbm.mode = bm["mode"];
             fbm.selected = false;
             bookmarks[bmName] = fbm;
@@ -521,6 +575,8 @@ private:
             config.conf["lists"][listName]["bookmarks"][bmName]["startTime"] = bm.startTime;
             config.conf["lists"][listName]["bookmarks"][bmName]["endTime"] = bm.endTime;
             config.conf["lists"][listName]["bookmarks"][bmName]["days"] = bm.days;
+            config.conf["lists"][listName]["bookmarks"][bmName]["geoinfo"] = bm.geoinfo;
+            config.conf["lists"][listName]["bookmarks"][bmName]["notes"] = bm.notes;
             config.conf["lists"][listName]["bookmarks"][bmName]["mode"] = bm.mode;
         }
         refreshWaterfallBookmarks(false);
@@ -533,8 +589,15 @@ private:
 
         // TODO: Replace with something that won't iterate every frame
         std::vector<std::string> selectedNames;
-        for (auto& [name, bm] : _this->bookmarks) {
-            if (bm.selected) { selectedNames.push_back(name); }
+
+        // if not go for the standard way
+        if (selectedNames.size() == 0)
+        {
+            for (auto& [name, bm] : _this->bookmarks) {
+                if (bm.selected) { 
+                    selectedNames.push_back(name); 
+                }
+            }
         }
 
         float lineHeight = ImGui::GetTextLineHeightWithSpacing();
@@ -635,6 +698,10 @@ private:
                 _this->editedBookmark.days[i] = true;
             }
 
+            _this->editedBookmark.geoinfo = "";
+
+            _this->editedBookmark.notes = "";
+
             _this->editedBookmark.selected = false;
 
             _this->createOpen = true;
@@ -681,7 +748,7 @@ private:
         }
 
         // Bookmark list
-        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY, ImVec2(0, 200))) {
+        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable, ImVec2(0, 200))) {
             ImGui::TableSetupColumn("Name");
             ImGui::TableSetupColumn("Bookmark");
             ImGui::TableSetupScrollFreeze(2, 1);
@@ -765,14 +832,24 @@ private:
             config.release(true);
         }
 
-        ImGui::LeftLabel("Bookmark Rectangle");
-        ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
-        if (ImGui::Checkbox("##", &_this->bookmarkRectangle)) {
+        if (ImGui::Checkbox("Rectangles##_freq_mgr_rect", &_this->bookmarkRectangle)) {
             config.acquire();
             config.conf["bookmarkRectangle"] = _this->bookmarkRectangle;
             config.release(true);
         }
 
+        ImGui::SameLine();
+        if (ImGui::Checkbox("Centered##_freq_mgr_cen", &_this->bookmarkCentered)) {
+            config.acquire();
+            config.conf["bookmarkCentered"] = _this->bookmarkCentered;
+            config.release(true);
+        }
+
+        if (ImGui::Checkbox("Avoid clutter on last row##_freq_mgr_noClut", &_this->bookmarkNoClutter)) {
+            config.acquire();
+            config.conf["bookmarkNoClutter"] = _this->bookmarkNoClutter;
+            config.release(true);
+        }
 
         if (_this->selectedListName == "") { style::endDisabled(); }
 
@@ -836,39 +913,42 @@ private:
                 ImVec2 nameSize = ImGui::CalcTextSize(bm.bookmarkName.c_str());
 
                 int row = 0;
-                double minLeftOverlap = DBL_MAX, minRightOverlap = DBL_MAX, minOverlap = DBL_MAX;
-                double bmMinX = centerXpos - (nameSize.x / 2) - 5;
-                double bmMaxX = centerXpos + (nameSize.x / 2) + 5;
+                double bmMinX = 0.0;
+                double bmMaxX = 0.0;
+                if (_this->bookmarkCentered) {
+                    bmMinX = centerXpos - (nameSize.x / 2) - 5;
+                    bmMaxX = centerXpos + (nameSize.x / 2) + 5;
+                } else {
+                    bmMinX = centerXpos - 5;
+                    bmMaxX = centerXpos + nameSize.x + 5;
+                }
                 // std::cout << "BR_X: " << bm.bookmarkName << " " << bmMinX << " " << bmMaxX << std::endl;
-
-                for (int i = 0; i <= _this->bookmarkRows; i++) {
-                    double leftOverlap = 0.0, rightOverlap = 0.0;
-
+                bool foundOnrow = false;
+                for (int i = 0; i < _this->bookmarkRows; i++) {
+                    foundOnrow = false;
                     for (auto const br: bookmarkRectangles[i]) {
-                        if (bmMinX >= br.min && bmMinX <= br.max) {
-                            leftOverlap = br.max - bmMinX;
-                        } else if (br.min >= bmMinX && br.min <= bmMaxX) {
-                            leftOverlap = br.min - bmMinX;
-                        }
-
-                        if (bmMaxX >= br.min && bmMaxX <= br.max) {
-                            rightOverlap = bmMaxX - br.min;
-                        } else if (br.max >= bmMinX && br.max <= bmMaxX) {
-                            rightOverlap = bmMaxX - br.max;
+                        if (((bmMinX >= br.min && bmMinX <= br.max) || (bmMaxX >= br.min && bmMaxX <= br.max)) || (br.max <= bmMaxX && br.min >= bmMinX)) {
+                            row = i + 1;
+                            foundOnrow = true;
+                            break;
                         }
                     }
-
-                    if (leftOverlap + rightOverlap < minOverlap) {
-                        minOverlap = leftOverlap + rightOverlap;
+                    if (foundOnrow == false) {
                         row = i;
-                    }
-
-                    if (minOverlap == 0.0) {
-                        break;
+                        break; 
                     }
                 }
-
-                // std::cout << "BR_O: " << bm.bookmarkName << ", overlap " << minOverlap << ", row " << row << std::endl;
+                // avoid clutter on the last row
+                if (row == _this->bookmarkRows && _this->bookmarkNoClutter) {
+                   foundOnrow = false;
+                    for (auto const br: bookmarkRectangles[row]) {
+                        if (((bmMinX >= br.min && bmMinX <= br.max) || (bmMaxX >= br.min && bmMaxX <= br.max)) || (br.max <= bmMaxX && br.min >= bmMinX)) {
+                            foundOnrow = true;
+                            break;
+                        }
+                    }
+                    if (foundOnrow) { continue; }
+                }
 
                 ImVec2 rectMin, rectMax;
 
@@ -911,10 +991,18 @@ private:
                 
                 if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_TOP) {
                     args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y + (nameSize.y * (row + 1))), ImVec2(centerXpos, args.max.y), bookmarkColor);
-                    args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    if (_this->bookmarkCentered) {
+                        args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    } else {
+                        args.window->DrawList->AddText(ImVec2(bmMinX + 6, args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    }
                 } else {
                     args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y), ImVec2(centerXpos, args.max.y - (nameSize.y * (row + 1))), bookmarkColor);
-                    args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.max.y - nameSize.y - (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    if (_this->bookmarkCentered) {
+                        args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.max.y - nameSize.y - (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    } else {
+                        args.window->DrawList->AddText(ImVec2(bmMinX + 6, args.max.y - nameSize.y - (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    }
                 }
             }
         }
@@ -939,7 +1027,7 @@ private:
         WaterfallBookmark hoveredBookmark;
         std::string hoveredBookmarkName;
 
-        for (auto bm : _this->waterfallBookmarks) {
+        for (auto& bm : _this->waterfallBookmarks) {
             if (bm.bookmark.frequency >= args.lowFreq && bm.bookmark.frequency <= args.highFreq) {
                 if (ImGui::IsMouseHoveringRect(bm.clampedRectMin, bm.clampedRectMax)) {
                     inALabel = true;
@@ -967,6 +1055,22 @@ private:
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
             _this->mouseClickedInLabel = true;
             applyBookmark(hoveredBookmark.bookmark, gui::waterfall.selectedVFO);
+            /* if the clicked list is different from the selected, switch */
+            if (hoveredBookmark.listName != _this->selectedListName) {
+                _this->loadByName(hoveredBookmark.listName);
+                _this->selectedListName = hoveredBookmark.listName;
+                config.acquire();
+                config.conf["selectedList"] = _this->selectedListName;
+                config.release(true);
+            }
+            /* search in _this->bookmarks the selected hoveredBookmark */
+            for (auto& [name, b] : _this->bookmarks) {
+                if (name == hoveredBookmarkName) {
+                    b.selected = true;
+                } else {
+                    b.selected = false;
+                }
+            }                
         }
 
         char bookmarkDays[8];
@@ -986,6 +1090,8 @@ private:
         ImGui::Text("End Time: %s", std::to_string(hoveredBookmark.bookmark.endTime).c_str());
         ImGui::Text("Days: %s", bookmarkDays);
         ImGui::Text("Mode: %s", demodModeList[hoveredBookmark.bookmark.mode]);
+        ImGui::Text("Geo info: %s", hoveredBookmark.bookmark.geoinfo.c_str());
+        ImGui::Text("Notes: %s", hoveredBookmark.bookmark.notes.c_str());
         ImGui::EndTooltip();
     }
 
@@ -1010,6 +1116,7 @@ private:
             return;
         }
 
+        int imported_entries = 0; 
         // Load every bookmark
         for (auto const [_name, bm] : importBookmarks["bookmarks"].items()) {
             if (bookmarks.find(_name) != bookmarks.end()) {
@@ -1030,13 +1137,27 @@ private:
                 }
             }
 
+            if (bm.contains("geoinfo")) {
+                fbm.geoinfo = bm["geoinfo"];
+            } else {
+                fbm.geoinfo = "";
+            }
+
+            if (bm.contains("notes")) {
+                fbm.notes = bm["notes"];
+            } else {
+                fbm.notes = "";
+            }
+
             fbm.mode = bm["mode"];
             fbm.selected = false;
             bookmarks[_name] = fbm;
+            imported_entries++;
         }
         saveByName(selectedListName);
-
         fs.close();
+
+		flog::info("Imported {0} entries", imported_entries);
     }
 
     void exportBookmarks(std::string path) {
@@ -1079,6 +1200,8 @@ private:
     int bookmarkDisplayMode = 0;
     int bookmarkRows = 0;
     bool bookmarkRectangle;
+    bool bookmarkCentered;
+    bool bookmarkNoClutter;
 };
 
 MOD_EXPORT void _INIT_() {
@@ -1087,6 +1210,8 @@ MOD_EXPORT void _INIT_() {
     def["bookmarkDisplayMode"] = BOOKMARK_DISP_MODE_TOP;
     def["bookmarkRows"] = 5;
     def["bookmarkRectangle"] = true;
+    def["bookmarkCentered"] = true;
+    def["bookmarkNoClutter"] = false;
     def["lists"]["General"]["showOnWaterfall"] = true;
     def["lists"]["General"]["bookmarks"] = json::object();
 
@@ -1105,6 +1230,13 @@ MOD_EXPORT void _INIT_() {
     if (!config.conf.contains("bookmarkRectangle")) {
         config.conf["bookmarkRectangle"] = true;
     }
+    if (!config.conf.contains("bookmarkCentered")) {
+        config.conf["bookmarkCentered"] = true;
+    }
+    if (!config.conf.contains("bookmarkNoClutter")) {
+        config.conf["bookmarkNoClutter"] = false;
+    }
+
     for (auto [listName, list] : config.conf["lists"].items()) {
         if (list.contains("bookmarks") && list.contains("showOnWaterfall") && list["showOnWaterfall"].is_boolean()) { continue; }
         json newList;
