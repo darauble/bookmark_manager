@@ -81,6 +81,20 @@ bool compareWaterfallBookmarks(WaterfallBookmark wbm1, WaterfallBookmark wbm2) {
     return (wbm1.bookmark.frequency < wbm2.bookmark.frequency);
 }
 
+// Define the comparator lambda function
+auto comparatorFreqAsc = [](const std::pair<std::string, FrequencyBookmark>& a, const std::pair<std::string, FrequencyBookmark>& b) {
+    return a.second.frequency < b.second.frequency;
+};
+
+auto comparatorFreqDesc = [](const std::pair<std::string, FrequencyBookmark>& a, const std::pair<std::string, FrequencyBookmark>& b) {
+    return a.second.frequency > b.second.frequency;
+};
+
+
+bool compareBookmarksFreq(FrequencyBookmark bm1, FrequencyBookmark bm2) {
+    return (bm1.frequency < bm2.frequency);
+}
+
 bool timeValid(int time) {
     // Check HHMM time validity.
     int hours = time / 100;
@@ -448,6 +462,7 @@ private:
 
     void refreshLists() {
         listNames.clear();
+        sortSpecsDirty = true;
         listNamesTxt = "";
 
         config.acquire();
@@ -523,6 +538,7 @@ private:
 
     void loadByName(std::string listName) {
         bookmarks.clear();
+        sortSpecsDirty = true;
         if (std::find(listNames.begin(), listNames.end(), listName) == listNames.end()) {
             selectedListName = "";
             selectedListId = 0;
@@ -580,6 +596,7 @@ private:
             config.conf["lists"][listName]["bookmarks"][bmName]["mode"] = bm.mode;
         }
         refreshWaterfallBookmarks(false);
+        sortSpecsDirty = true;
         config.release(true);
     }
 
@@ -590,7 +607,6 @@ private:
         // TODO: Replace with something that won't iterate every frame
         std::vector<std::string> selectedNames;
 
-        // if not go for the standard way
         if (selectedNames.size() == 0)
         {
             for (auto& [name, bm] : _this->bookmarks) {
@@ -748,21 +764,64 @@ private:
         }
 
         // Bookmark list
-        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable, ImVec2(0, 200))) {
-            ImGui::TableSetupColumn("Name");
-            ImGui::TableSetupColumn("Bookmark");
+        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable, ImVec2(0, 200))) {
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_DefaultSort, 0.0f, 0);
+            ImGui::TableSetupColumn("Bookmark", ImGuiTableColumnFlags_DefaultSort, 0.0f, 1);
             ImGui::TableSetupScrollFreeze(2, 1);
             ImGui::TableHeadersRow();
-            for (auto& [name, bm] : _this->bookmarks) {
+
+            // Sort by column name or by column bookmark when the column header is clicked
+            if (ImGui::TableGetSortSpecs() != nullptr) {
+                ImGuiTableSortSpecs* sortSpecs = ImGui::TableGetSortSpecs();
+                if (sortSpecs->SpecsDirty || _this->sortSpecsDirty) {
+                    if (sortSpecs->SpecsCount > 0) {
+                        ImGuiTableColumnSortSpecs spec = sortSpecs->Specs[0];
+                        // Sort by Name column
+                        _this->sortedBookmarks.clear();
+                        if (spec.ColumnUserID == 0) {
+                            //flog::info("Sort by Name column");
+                            if (spec.SortDirection == ImGuiSortDirection_Descending) {
+                                //flog::info("Sort Descending");
+                                _this->sortedBookmarks.insert(_this->sortedBookmarks.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                                std::reverse(_this->sortedBookmarks.begin(), _this->sortedBookmarks.end());
+                            }
+                            if (spec.SortDirection == ImGuiSortDirection_Ascending) {
+                                //flog::info("Sort Ascending");
+                                _this->sortedBookmarks.insert(_this->sortedBookmarks.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                            }                            
+                        } else if (spec.ColumnUserID == 1) {
+                            // Sort by Bookmark column
+                            //flog::info("Sort by Bookmarks column");
+                            if (spec.SortDirection == ImGuiSortDirection_Descending) {
+                                //flog::info("Sort Descending");
+                                _this->sortedBookmarks.insert(_this->sortedBookmarks.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                                std::sort(_this->sortedBookmarks.begin(), _this->sortedBookmarks.end(), comparatorFreqDesc);
+                            }
+                            if (spec.SortDirection == ImGuiSortDirection_Ascending) {
+                                //flog::info("Sort Ascending");
+                                _this->sortedBookmarks.insert(_this->sortedBookmarks.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                                std::sort(_this->sortedBookmarks.begin(), _this->sortedBookmarks.end(), comparatorFreqAsc);
+                            }
+                        }
+                        sortSpecs->SpecsDirty = false;
+                        _this->sortSpecsDirty = false;                
+                    }
+                }
+            }
+
+            for (auto& [name, bm] : _this->sortedBookmarks) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImVec2 min = ImGui::GetCursorPos();
-
-                if (ImGui::Selectable((name + "##_freq_mgr_bkm_name_" + _this->name).c_str(), &bm.selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SelectOnClick)) {
+                
+                FrequencyBookmark& cbm = _this->bookmarks[name];
+                if (ImGui::Selectable((name + "##_freq_mgr_bkm_name_" + _this->name).c_str(), &cbm.selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SelectOnClick)) {
                     // if shift or control isn't pressed, deselect all others
                     if (!ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyCtrl) {
                         for (auto& [_name, _bm] : _this->bookmarks) {
-                            if (name == _name) { continue; }
+                            if (name == _name) {
+                                continue; 
+                            }
                             _bm.selected = false;
                         }
                     }
@@ -991,10 +1050,14 @@ private:
                 
                 if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_TOP) {
                     args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y + (nameSize.y * (row + 1))), ImVec2(centerXpos, args.max.y), bookmarkColor);
-                    if (_this->bookmarkCentered) {
-                        args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    if (_this->bookmarkCentered) {                        
+                        if (((centerXpos - (nameSize.x / 2)) >= args.min.x) && ((centerXpos + (nameSize.x / 2) <= args.max.x))) {
+                            args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                        }
                     } else {
-                        args.window->DrawList->AddText(ImVec2(bmMinX + 6, args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                        if (((bmMinX + 6) >= args.min.x) && ((bmMinX + nameSize.x) <= args.max.x)) {
+                            args.window->DrawList->AddText(ImVec2(bmMinX + 6, args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                        }
                     }
                 } else {
                     args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y), ImVec2(centerXpos, args.max.y - (nameSize.y * (row + 1))), bookmarkColor);
@@ -1181,6 +1244,8 @@ private:
     EventHandler<ImGui::WaterFall::InputHandlerArgs> inputHandler;
 
     std::map<std::string, FrequencyBookmark> bookmarks;
+    std::vector<std::pair<std::string, FrequencyBookmark>> sortedBookmarks;
+    bool sortSpecsDirty = true;
 
     std::string editedBookmarkName = "";
     std::string firstEditedBookmarkName = "";
@@ -1202,6 +1267,8 @@ private:
     bool bookmarkRectangle;
     bool bookmarkCentered;
     bool bookmarkNoClutter;
+    int currentSortColumn = -1;
+    bool currentSortAscending = true;    
 };
 
 MOD_EXPORT void _INIT_() {
