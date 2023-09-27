@@ -777,30 +777,30 @@ private:
                     if (sortSpecs->SpecsCount > 0) {
                         ImGuiTableColumnSortSpecs spec = sortSpecs->Specs[0];
                         // Sort by Name column
-                        _this->pairs.clear();
+                        _this->sortedBookmarks.clear();
                         if (spec.ColumnUserID == 0) {
                             //flog::info("Sort by Name column");
                             if (spec.SortDirection == ImGuiSortDirection_Descending) {
                                 //flog::info("Sort Descending");
-                                _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
-                                std::reverse(_this->pairs.begin(), _this->pairs.end());
+                                _this->sortedBookmarks.insert(_this->sortedBookmarks.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                                std::reverse(_this->sortedBookmarks.begin(), _this->sortedBookmarks.end());
                             }
                             if (spec.SortDirection == ImGuiSortDirection_Ascending) {
                                 //flog::info("Sort Ascending");
-                                _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                                _this->sortedBookmarks.insert(_this->sortedBookmarks.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
                             }                            
                         } else if (spec.ColumnUserID == 1) {
                             // Sort by Bookmark column
                             //flog::info("Sort by Bookmarks column");
                             if (spec.SortDirection == ImGuiSortDirection_Descending) {
                                 //flog::info("Sort Descending");
-                                _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
-                                std::sort(_this->pairs.begin(), _this->pairs.end(), comparatorFreqDesc);
+                                _this->sortedBookmarks.insert(_this->sortedBookmarks.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                                std::sort(_this->sortedBookmarks.begin(), _this->sortedBookmarks.end(), comparatorFreqDesc);
                             }
                             if (spec.SortDirection == ImGuiSortDirection_Ascending) {
                                 //flog::info("Sort Ascending");
-                                _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
-                                std::sort(_this->pairs.begin(), _this->pairs.end(), comparatorFreqAsc);
+                                _this->sortedBookmarks.insert(_this->sortedBookmarks.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                                std::sort(_this->sortedBookmarks.begin(), _this->sortedBookmarks.end(), comparatorFreqAsc);
                             }
                         }
                         sortSpecs->SpecsDirty = false;
@@ -809,7 +809,7 @@ private:
                 }
             }
 
-            for (auto& [name, bm] : _this->pairs) {
+            for (auto& [name, bm] : _this->sortedBookmarks) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImVec2 min = ImGui::GetCursorPos();
@@ -1244,7 +1244,7 @@ private:
     EventHandler<ImGui::WaterFall::InputHandlerArgs> inputHandler;
 
     std::map<std::string, FrequencyBookmark> bookmarks;
-    std::vector<std::pair<std::string, FrequencyBookmark>> pairs;
+    std::vector<std::pair<std::string, FrequencyBookmark>> sortedBookmarks;
     bool sortSpecsDirty = true;
 
     std::string editedBookmarkName = "";
