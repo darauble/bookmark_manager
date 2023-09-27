@@ -1050,10 +1050,14 @@ private:
                 
                 if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_TOP) {
                     args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y + (nameSize.y * (row + 1))), ImVec2(centerXpos, args.max.y), bookmarkColor);
-                    if (_this->bookmarkCentered) {
-                        args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                    if (_this->bookmarkCentered) {                        
+                        if (((centerXpos - (nameSize.x / 2)) >= args.min.x) && ((centerXpos + (nameSize.x / 2) <= args.max.x))) {
+                            args.window->DrawList->AddText(ImVec2(centerXpos - (nameSize.x / 2), args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                        }
                     } else {
-                        args.window->DrawList->AddText(ImVec2(bmMinX + 6, args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                        if (((bmMinX + 6) >= args.min.x) && ((bmMinX + nameSize.x) <= args.max.x)) {
+                            args.window->DrawList->AddText(ImVec2(bmMinX + 6, args.min.y + (nameSize.y * row)), bookmarkTextColor, bm.bookmarkName.c_str());
+                        }
                     }
                 } else {
                     args.window->DrawList->AddLine(ImVec2(centerXpos, args.min.y), ImVec2(centerXpos, args.max.y - (nameSize.y * (row + 1))), bookmarkColor);
