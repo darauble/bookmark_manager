@@ -833,6 +833,15 @@ private:
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text("%s %s", utils::formatFreq(bm.frequency).c_str(), demodModeList[bm.mode]);
                 ImVec2 max = ImGui::GetCursorPos();
+
+                if (_this->scrollToClickedBookmark) {
+                    // Handle item click event
+                    //float scrollingPosY = ImGui::GetItemRectMin().y; // + selectedItemIndex * ImGui::GetTextLineHeight();
+                    float scrollingPosY = ImGui::GetCursorPos().y;
+                    // Set the vertical scrolling position
+                    ImGui::SetScrollY(scrollingPosY);
+                    _this->scrollToClickedBookmark = false;
+                }
             }
             ImGui::EndTable();
         }
@@ -1125,6 +1134,7 @@ private:
                 config.acquire();
                 config.conf["selectedList"] = _this->selectedListName;
                 config.release(true);
+                _this->scrollToClickedBookmark = true;
             }
             /* search in _this->bookmarks the selected hoveredBookmark */
             for (auto& [name, b] : _this->bookmarks) {
@@ -1269,6 +1279,7 @@ private:
     bool bookmarkNoClutter;
     int currentSortColumn = -1;
     bool currentSortAscending = true;    
+    bool scrollToClickedBookmark = false;
 };
 
 MOD_EXPORT void _INIT_() {
