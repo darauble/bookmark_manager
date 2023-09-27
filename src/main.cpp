@@ -462,6 +462,7 @@ private:
 
     void refreshLists() {
         listNames.clear();
+        sortSpecsDirty = true;
         listNamesTxt = "";
 
         config.acquire();
@@ -537,6 +538,7 @@ private:
 
     void loadByName(std::string listName) {
         bookmarks.clear();
+        sortSpecsDirty = true;
         if (std::find(listNames.begin(), listNames.end(), listName) == listNames.end()) {
             selectedListName = "";
             selectedListId = 0;
@@ -594,6 +596,7 @@ private:
             config.conf["lists"][listName]["bookmarks"][bmName]["mode"] = bm.mode;
         }
         refreshWaterfallBookmarks(false);
+        sortSpecsDirty = true;
         config.release(true);
     }
 
@@ -604,7 +607,6 @@ private:
         // TODO: Replace with something that won't iterate every frame
         std::vector<std::string> selectedNames;
 
-        // if not go for the standard way
         if (selectedNames.size() == 0)
         {
             for (auto& [name, bm] : _this->bookmarks) {
@@ -768,76 +770,56 @@ private:
             ImGui::TableSetupScrollFreeze(2, 1);
             ImGui::TableHeadersRow();
 
-            // codeium, please add code here: sort by column name or by column bookmark when the column header is clicked
+            // Sort by column name or by column bookmark when the column header is clicked
             if (ImGui::TableGetSortSpecs() != nullptr) {
                 ImGuiTableSortSpecs* sortSpecs = ImGui::TableGetSortSpecs();
-
-                if (sortSpecs->SpecsDirty) {
+                if (sortSpecs->SpecsDirty || _this->sortSpecsDirty) {
                     if (sortSpecs->SpecsCount > 0) {
                         ImGuiTableColumnSortSpecs spec = sortSpecs->Specs[0];
+                        // Sort by Name column
+                        _this->pairs.clear();
                         if (spec.ColumnUserID == 0) {
-                            // Sort by Name column
-                            //std::sort(_this->bookmarks.begin(), _this->bookmarks.end());
-                            flog::info("Sort by Name column");
+                            //flog::info("Sort by Name column");
                             if (spec.SortDirection == ImGuiSortDirection_Descending) {
-                                flog::info("Sort Descending");
-                                _this->pairs.clear();
+                                //flog::info("Sort Descending");
+                                _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
+                                std::reverse(_this->pairs.begin(), _this->pairs.end());
                             }
                             if (spec.SortDirection == ImGuiSortDirection_Ascending) {
-                                flog::info("Sort Ascending");
-                                _this->pairs.clear();
+                                //flog::info("Sort Ascending");
                                 _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
                             }                            
                         } else if (spec.ColumnUserID == 1) {
                             // Sort by Bookmark column
-                            flog::info("Sort by Bookmarks column");
+                            //flog::info("Sort by Bookmarks column");
                             if (spec.SortDirection == ImGuiSortDirection_Descending) {
-                                //std::reverse(_this->bookmarks.begin(), _this->bookmarks.end());
-                                flog::info("Sort Descending");
-                                _this->pairs.clear();  
+                                //flog::info("Sort Descending");
                                 _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
-                                
-                                // Sort the vector of pairs
                                 std::sort(_this->pairs.begin(), _this->pairs.end(), comparatorFreqDesc);
                             }
                             if (spec.SortDirection == ImGuiSortDirection_Ascending) {
-                                //std::reverse(_this->bookmarks.begin(), _this->bookmarks.end());
-                                flog::info("Sort Ascending");
-                                _this->pairs.clear();
+                                //flog::info("Sort Ascending");
                                 _this->pairs.insert(_this->pairs.begin(), _this->bookmarks.begin(), _this->bookmarks.end());
-                                
-                                // Sort the vector of pairs
                                 std::sort(_this->pairs.begin(), _this->pairs.end(), comparatorFreqAsc);
-/*
-                                // Clear the sortedBookmarks map
-                                _this->sortedBookmarks.clear();
-
-                                // Insert the sorted pairs back into the sortedBookmarks map
-                                for (const auto& pair : _this->pairs) {
-                                    _this->sortedBookmarks.insert(pair);
-                               }
-*/
                             }
                         }
-                        sortSpecs->SpecsDirty = false;                
+                        sortSpecs->SpecsDirty = false;
+                        _this->sortSpecsDirty = false;                
                     }
                 }
-            }            
-             
+            }
 
             for (auto& [name, bm] : _this->pairs) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
                 ImVec2 min = ImGui::GetCursorPos();
                 
-                bool bufferSelect = bm.selected;
-
-                if (ImGui::Selectable((name + "##_freq_mgr_bkm_name_" + _this->name).c_str(), &bufferSelect, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SelectOnClick)) {
+                FrequencyBookmark& cbm = _this->bookmarks[name];
+                if (ImGui::Selectable((name + "##_freq_mgr_bkm_name_" + _this->name).c_str(), &cbm.selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SelectOnClick)) {
                     // if shift or control isn't pressed, deselect all others
                     if (!ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyCtrl) {
                         for (auto& [_name, _bm] : _this->bookmarks) {
                             if (name == _name) {
-                                _bm.selected = bufferSelect; 
                                 continue; 
                             }
                             _bm.selected = false;
@@ -1257,9 +1239,9 @@ private:
     EventHandler<ImGui::WaterFall::FFTRedrawArgs> fftRedrawHandler;
     EventHandler<ImGui::WaterFall::InputHandlerArgs> inputHandler;
 
-    //std::map<std::string, FrequencyBookmark> bookmarks;
-    std::vector<std::pair<std::string, FrequencyBookmark>> bookmarks;
+    std::map<std::string, FrequencyBookmark> bookmarks;
     std::vector<std::pair<std::string, FrequencyBookmark>> pairs;
+    bool sortSpecsDirty = true;
 
     std::string editedBookmarkName = "";
     std::string firstEditedBookmarkName = "";
