@@ -809,14 +809,9 @@ private:
                 }
             }
 
-            int itemNum = 0;
-            int selItemNum = 0;
-            float yPosSelected = 0.0;
             for (auto& [name, bm] : _this->sortedBookmarks) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImVec2 min = ImGui::GetCursorPos();
-                itemNum++;
 
                 FrequencyBookmark& cbm = _this->bookmarks[name];
                 if (ImGui::Selectable((name + "##_freq_mgr_bkm_name_" + _this->name).c_str(), &cbm.selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SelectOnClick)) {
@@ -836,30 +831,11 @@ private:
 
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text("%s %s", utils::formatFreq(bm.frequency).c_str(), demodModeList[bm.mode]);
-                //ImVec2 max = ImGui::GetCursorPos();
 
                 if (_this->scrollToClickedBookmark && cbm.selected) {
-                    //yPosSelected = min.y;
-                    //yPosSelected = ImGui::GetItemRectMin().y;
-                    //selItemNum = itemNum;
                     ImGui::SetScrollHereY(0.5f);                   
                 }
             }
-#ifdef DAVIDE
-            if (_this->scrollToClickedBookmark) {
-                /*
-                float rowHeight = ImGui::GetTextLineHeightWithSpacing();
-                float tableHeight = ImGui::GetContentRegionAvail().y;
-    
-                if (selItemNum * rowHeight > ImGui::GetScrollY() + tableHeight || selItemNum * rowHeight < ImGui::GetScrollY()) {
-                    ImGui::SetScrollY(selItemNum * rowHeight - tableHeight / 2);
-                }
-                */
-                ImGui::SetScrollHereY(0.5f);
-
-                _this->scrollToClickedBookmark = false;
-            }
-#endif
             ImGui::EndTable();
         }
 
