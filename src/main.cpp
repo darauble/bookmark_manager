@@ -19,7 +19,7 @@ SDRPP_MOD_INFO{
     /* Name:            */ "bookmark_manager",
     /* Description:     */ "Bookmark manager module for SDR++",
     /* Author:          */ "Ryzerth;Zimm;Darau Ble;Davide Rovelli",
-    /* Version:         */ 0, 1, 6,
+    /* Version:         */ 0, 1, 7,
     /* Max instances    */ 1
 };
 
@@ -812,8 +812,7 @@ private:
             for (auto& [name, bm] : _this->sortedBookmarks) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImVec2 min = ImGui::GetCursorPos();
-                
+
                 FrequencyBookmark& cbm = _this->bookmarks[name];
                 if (ImGui::Selectable((name + "##_freq_mgr_bkm_name_" + _this->name).c_str(), &cbm.selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_SelectOnClick)) {
                     // if shift or control isn't pressed, deselect all others
@@ -828,11 +827,16 @@ private:
                 }
                 if (ImGui::TableGetHoveredColumn() >= 0 && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     applyBookmark(bm, gui::waterfall.selectedVFO);
+                    cbm.selected = true;
                 }
 
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text("%s %s", utils::formatFreq(bm.frequency).c_str(), demodModeList[bm.mode]);
-                ImVec2 max = ImGui::GetCursorPos();
+
+                if (_this->scrollToClickedBookmark && cbm.selected) {
+                    ImGui::SetScrollHereY(0.5f);
+                    _this->scrollToClickedBookmark = false;                   
+                }
             }
             ImGui::EndTable();
         }
@@ -891,20 +895,20 @@ private:
             config.release(true);
         }
 
-        if (ImGui::Checkbox("Rectangles##_freq_mgr_rect", &_this->bookmarkRectangle)) {
+        if (ImGui::Checkbox(("Rectangles##_freq_mgr_rect_" + _this->name).c_str(), &_this->bookmarkRectangle)) {
             config.acquire();
             config.conf["bookmarkRectangle"] = _this->bookmarkRectangle;
             config.release(true);
         }
 
         ImGui::SameLine();
-        if (ImGui::Checkbox("Centered##_freq_mgr_cen", &_this->bookmarkCentered)) {
+        if (ImGui::Checkbox(("Centered##_freq_mgr_cen_" + _this->name).c_str(), &_this->bookmarkCentered)) {
             config.acquire();
             config.conf["bookmarkCentered"] = _this->bookmarkCentered;
             config.release(true);
         }
 
-        if (ImGui::Checkbox("Avoid clutter on last row##_freq_mgr_noClut", &_this->bookmarkNoClutter)) {
+        if (ImGui::Checkbox(("Avoid clutter on last row##_freq_mgr_noClut_" + _this->name).c_str(), &_this->bookmarkNoClutter)) {
             config.acquire();
             config.conf["bookmarkNoClutter"] = _this->bookmarkNoClutter;
             config.release(true);
@@ -1134,6 +1138,7 @@ private:
                     b.selected = false;
                 }
             }                
+            _this->scrollToClickedBookmark = true;
         }
 
         char bookmarkDays[8];
@@ -1269,6 +1274,7 @@ private:
     bool bookmarkNoClutter;
     int currentSortColumn = -1;
     bool currentSortAscending = true;    
+    bool scrollToClickedBookmark = false;
 };
 
 MOD_EXPORT void _INIT_() {
