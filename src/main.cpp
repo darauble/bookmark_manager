@@ -834,7 +834,8 @@ private:
                 ImGui::Text("%s %s", utils::formatFreq(bm.frequency).c_str(), demodModeList[bm.mode]);
 
                 if (_this->scrollToClickedBookmark && cbm.selected) {
-                    ImGui::SetScrollHereY(0.5f);                   
+                    ImGui::SetScrollHereY(0.5f);
+                    _this->scrollToClickedBookmark = false;                   
                 }
             }
             ImGui::EndTable();
