@@ -827,6 +827,7 @@ private:
                 }
                 if (ImGui::TableGetHoveredColumn() >= 0 && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                     applyBookmark(bm, gui::waterfall.selectedVFO);
+                    cbm.selected = true;
                 }
 
                 ImGui::TableSetColumnIndex(1);
