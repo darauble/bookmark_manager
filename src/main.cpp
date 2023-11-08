@@ -1100,7 +1100,6 @@ private:
                     inALabel = true;
                     hoveredBookmark = bm;
                     hoveredBookmarkName = bm.bookmarkName;
-                    break;
                 }
             }
         }
