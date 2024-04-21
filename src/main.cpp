@@ -1019,10 +1019,14 @@ private:
                 ImVec2 rectMin, rectMax;
 
                 if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_TOP) {
+                    double bottomright = args.min.y + nameSize.y + (nameSize.y * row);
                     rectMin = ImVec2(bmMinX, args.min.y + (nameSize.y * row));
-                    rectMax = ImVec2(bmMaxX, args.min.y + nameSize.y + (nameSize.y * row));
+                    if (bottomright >= args.max.y) { continue; }
+                    rectMax = ImVec2(bmMaxX, bottomright);
                 } else {
-                    rectMin = ImVec2(bmMinX, args.max.y - nameSize.y - (nameSize.y * row));
+                    double topleft = args.max.y - nameSize.y - (nameSize.y * row);
+                    if (topleft <= args.min.y) { continue; }
+                    rectMin = ImVec2(bmMinX, topleft);
                     rectMax = ImVec2(bmMaxX, args.max.y - (nameSize.y * row));
                 }
 
