@@ -19,7 +19,7 @@ SDRPP_MOD_INFO{
     /* Name:            */ "bookmark_manager",
     /* Description:     */ "Bookmark manager module for SDR++",
     /* Author:          */ "Ryzerth;Zimm;Darau Ble;Davide Rovelli",
-    /* Version:         */ 0, 1, 7,
+    /* Version:         */ 0, 1, 8,
     /* Max instances    */ 1
 };
 
@@ -781,6 +781,8 @@ private:
                         ImGuiTableColumnSortSpecs spec = sortSpecs->Specs[0];
                         // Sort by Name column
                         _this->sortedBookmarks.clear();
+                        // Force scroll to selected bookmark
+                        _this->scrollToClickedBookmark = true;
                         if (spec.ColumnUserID == 0) {
                             //flog::info("Sort by Name column");
                             if (spec.SortDirection == ImGuiSortDirection_Descending) {
