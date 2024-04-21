@@ -237,13 +237,14 @@ private:
         strcpy(geoinfoBuf, editedBookmark.geoinfo.c_str());
 
         if (ImGui::BeginPopup(id.c_str(), ImGuiWindowFlags_NoResize)) {
+            float edit_win_size = 250.0f * style::uiScale;
             ImGui::BeginTable(("freq_manager_edit_table" + name).c_str(), 2);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Name");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
             if (ImGui::InputText(("##freq_manager_edit_name" + name).c_str(), nameBuf, 1023)) {
                 editedBookmarkName = nameBuf;
             }
@@ -252,21 +253,21 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Frequency");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
             ImGui::InputDouble(("##freq_manager_edit_freq" + name).c_str(), &editedBookmark.frequency);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Bandwidth");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
             ImGui::InputDouble(("##freq_manager_edit_bw" + name).c_str(), &editedBookmark.bandwidth);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Start Time");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
             ImGui::InputScalarN(
                 ("##freq_manager_edit_start_time" + name).c_str(),
                 ImGuiDataType_S32,
@@ -277,7 +278,7 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("End Time");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
             ImGui::InputScalarN(
                 ("##freq_manager_edit_end_time" + name).c_str(),
                 ImGuiDataType_S32,
@@ -310,7 +311,7 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Mode");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
 
             ImGui::Combo(("##freq_manager_edit_mode" + name).c_str(), &editedBookmark.mode, demodModeListTxt);
 
@@ -318,7 +319,7 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Geo Info");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
 
             if (ImGui::InputText(("##freq_manager_edit_geoinfo" + name).c_str(), geoinfoBuf, 2047)) {
                 editedBookmark.geoinfo = geoinfoBuf;
@@ -329,11 +330,12 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Notes");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
 
             if (ImGui::InputTextMultiline(("##freq_manager_edit_notes" + name).c_str(), notesBuf, 4095)) {
                 editedBookmark.notes = notesBuf;
             }
+
 
             ImGui::EndTable();
 
