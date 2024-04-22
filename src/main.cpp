@@ -19,7 +19,7 @@ SDRPP_MOD_INFO{
     /* Name:            */ "bookmark_manager",
     /* Description:     */ "Bookmark manager module for SDR++",
     /* Author:          */ "Ryzerth;Zimm;Darau Ble;Davide Rovelli",
-    /* Version:         */ 0, 1, 7,
+    /* Version:         */ 0, 1, 8,
     /* Max instances    */ 1
 };
 
@@ -237,13 +237,14 @@ private:
         strcpy(geoinfoBuf, editedBookmark.geoinfo.c_str());
 
         if (ImGui::BeginPopup(id.c_str(), ImGuiWindowFlags_NoResize)) {
+            float edit_win_size = 250.0f * style::uiScale;
             ImGui::BeginTable(("freq_manager_edit_table" + name).c_str(), 2);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Name");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
             if (ImGui::InputText(("##freq_manager_edit_name" + name).c_str(), nameBuf, 1023)) {
                 editedBookmarkName = nameBuf;
             }
@@ -252,21 +253,21 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Frequency");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
             ImGui::InputDouble(("##freq_manager_edit_freq" + name).c_str(), &editedBookmark.frequency);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Bandwidth");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
             ImGui::InputDouble(("##freq_manager_edit_bw" + name).c_str(), &editedBookmark.bandwidth);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Start Time");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
             ImGui::InputScalarN(
                 ("##freq_manager_edit_start_time" + name).c_str(),
                 ImGuiDataType_S32,
@@ -277,7 +278,7 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("End Time");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
             ImGui::InputScalarN(
                 ("##freq_manager_edit_end_time" + name).c_str(),
                 ImGuiDataType_S32,
@@ -310,7 +311,7 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Mode");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
 
             ImGui::Combo(("##freq_manager_edit_mode" + name).c_str(), &editedBookmark.mode, demodModeListTxt);
 
@@ -318,7 +319,7 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Geo Info");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
 
             if (ImGui::InputText(("##freq_manager_edit_geoinfo" + name).c_str(), geoinfoBuf, 2047)) {
                 editedBookmark.geoinfo = geoinfoBuf;
@@ -329,11 +330,12 @@ private:
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Notes");
             ImGui::TableSetColumnIndex(1);
-            ImGui::SetNextItemWidth(250);
+            ImGui::SetNextItemWidth(edit_win_size);
 
             if (ImGui::InputTextMultiline(("##freq_manager_edit_notes" + name).c_str(), notesBuf, 4095)) {
                 editedBookmark.notes = notesBuf;
             }
+
 
             ImGui::EndTable();
 
@@ -619,7 +621,8 @@ private:
         float lineHeight = ImGui::GetTextLineHeightWithSpacing();
 
         float btnSize = ImGui::CalcTextSize("Rename").x + 8;
-        ImGui::SetNextItemWidth(menuWidth - 24 - (2 * lineHeight) - btnSize);
+        float sizetarget = menuWidth - btnSize - 2 * lineHeight - 24 * style::uiScale;
+        ImGui::SetNextItemWidth(sizetarget);
         if (ImGui::Combo(("##freq_manager_list_sel" + _this->name).c_str(), &_this->selectedListId, _this->listNamesTxt.c_str())) {
             _this->loadByName(_this->listNames[_this->selectedListId]);
             config.acquire();
@@ -764,7 +767,7 @@ private:
         }
 
         // Bookmark list
-        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable, ImVec2(0, 200))) {
+        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable, ImVec2(0, 200.0f * style::uiScale))) {
             ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_DefaultSort, 0.0f, 0);
             ImGui::TableSetupColumn("Bookmark", ImGuiTableColumnFlags_DefaultSort, 0.0f, 1);
             ImGui::TableSetupScrollFreeze(2, 1);
@@ -778,6 +781,8 @@ private:
                         ImGuiTableColumnSortSpecs spec = sortSpecs->Specs[0];
                         // Sort by Name column
                         _this->sortedBookmarks.clear();
+                        // Force scroll to selected bookmark
+                        _this->scrollToClickedBookmark = true;
                         if (spec.ColumnUserID == 0) {
                             //flog::info("Sort by Name column");
                             if (spec.SortDirection == ImGuiSortDirection_Descending) {
@@ -1016,10 +1021,14 @@ private:
                 ImVec2 rectMin, rectMax;
 
                 if (_this->bookmarkDisplayMode == BOOKMARK_DISP_MODE_TOP) {
+                    double bottomright = args.min.y + nameSize.y + (nameSize.y * row);
                     rectMin = ImVec2(bmMinX, args.min.y + (nameSize.y * row));
-                    rectMax = ImVec2(bmMaxX, args.min.y + nameSize.y + (nameSize.y * row));
+                    if (bottomright >= args.max.y) { continue; }
+                    rectMax = ImVec2(bmMaxX, bottomright);
                 } else {
-                    rectMin = ImVec2(bmMinX, args.max.y - nameSize.y - (nameSize.y * row));
+                    double topleft = args.max.y - nameSize.y - (nameSize.y * row);
+                    if (topleft <= args.min.y) { continue; }
+                    rectMin = ImVec2(bmMinX, topleft);
                     rectMax = ImVec2(bmMaxX, args.max.y - (nameSize.y * row));
                 }
 
