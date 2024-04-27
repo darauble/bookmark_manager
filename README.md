@@ -68,3 +68,13 @@ Then compile all SDR++, `make install`, run it, add the Bookmarks Manager into y
 
 To migrate old bookmarks simply copy `frequency_manager.json` and rename it to `bookmark_manager.json`, then adjust the line number to a desired one.
 
+# Compiled library
+
+This custom modified SDR++ version (https://github.com/daviderud/SDRPlusPlus/) includes in the binary packages the compiled bookmarks manager in addition to the standard frequency manager.
+Download it from here:
+https://github.com/daviderud/SDRPlusPlus/releases/tag/nightly
+
+
+
+
+
