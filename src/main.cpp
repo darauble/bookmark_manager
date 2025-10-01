@@ -224,7 +224,7 @@ private:
         bool open = true;
         gui::mainWindow.lockWaterfallControls = true;
 
-        std::string id = "Edit##freq_manager_edit_popup_" + name;
+        std::string id = "Edit##bookmark_manager_edit_popup_" + name;
         ImGui::OpenPopup(id.c_str());
 
         char nameBuf[1024];
@@ -238,30 +238,37 @@ private:
 
         if (ImGui::BeginPopup(id.c_str(), ImGuiWindowFlags_NoResize)) {
             float edit_win_size = 250.0f * style::uiScale;
-            ImGui::BeginTable(("freq_manager_edit_table" + name).c_str(), 2);
+            ImGui::BeginTable(("bookmark_manager_edit_table" + name).c_str(), 2);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Name");
             ImGui::TableSetColumnIndex(1);
             ImGui::SetNextItemWidth(edit_win_size);
-            if (ImGui::InputText(("##freq_manager_edit_name" + name).c_str(), nameBuf, 1023)) {
+            if (ImGui::InputText(("##bookmark_manager_edit_name" + name).c_str(), nameBuf, 1023)) {
                 editedBookmarkName = nameBuf;
             }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::LeftLabel("List");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::SetNextItemWidth(250);
+            ImGui::Combo(("##bookmark_manager_edit_list" + name).c_str(), &editedBookmarkListId, listNamesTxt.c_str());
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Frequency");
             ImGui::TableSetColumnIndex(1);
             ImGui::SetNextItemWidth(edit_win_size);
-            ImGui::InputDouble(("##freq_manager_edit_freq" + name).c_str(), &editedBookmark.frequency);
+            ImGui::InputDouble(("##bookmark_manager_edit_freq" + name).c_str(), &editedBookmark.frequency);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Bandwidth");
             ImGui::TableSetColumnIndex(1);
             ImGui::SetNextItemWidth(edit_win_size);
-            ImGui::InputDouble(("##freq_manager_edit_bw" + name).c_str(), &editedBookmark.bandwidth);
+            ImGui::InputDouble(("##bookmark_manager_edit_bw" + name).c_str(), &editedBookmark.bandwidth);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -269,7 +276,7 @@ private:
             ImGui::TableSetColumnIndex(1);
             ImGui::SetNextItemWidth(edit_win_size);
             ImGui::InputScalarN(
-                ("##freq_manager_edit_start_time" + name).c_str(),
+                ("##bookmark_manager_edit_start_time" + name).c_str(),
                 ImGuiDataType_S32,
                 &editedBookmark.startTime, 1,
                 NULL, NULL, "%04d", 0);
@@ -280,11 +287,11 @@ private:
             ImGui::TableSetColumnIndex(1);
             ImGui::SetNextItemWidth(edit_win_size);
             ImGui::InputScalarN(
-                ("##freq_manager_edit_end_time" + name).c_str(),
+                ("##bookmark_manager_edit_end_time" + name).c_str(),
                 ImGuiDataType_S32,
                 &editedBookmark.endTime, 1,
                 NULL, NULL, "%04d", 0);
-            
+
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             ImGui::LeftLabel("Days");
@@ -313,7 +320,7 @@ private:
             ImGui::TableSetColumnIndex(1);
             ImGui::SetNextItemWidth(edit_win_size);
 
-            ImGui::Combo(("##freq_manager_edit_mode" + name).c_str(), &editedBookmark.mode, demodModeListTxt);
+            ImGui::Combo(("##bookmark_manager_edit_mode" + name).c_str(), &editedBookmark.mode, demodModeListTxt);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -321,7 +328,7 @@ private:
             ImGui::TableSetColumnIndex(1);
             ImGui::SetNextItemWidth(edit_win_size);
 
-            if (ImGui::InputText(("##freq_manager_edit_geoinfo" + name).c_str(), geoinfoBuf, 2047)) {
+            if (ImGui::InputText(("##bookmark_manager_edit_geoinfo" + name).c_str(), geoinfoBuf, 2047)) {
                 editedBookmark.geoinfo = geoinfoBuf;
             }
 
@@ -332,28 +339,66 @@ private:
             ImGui::TableSetColumnIndex(1);
             ImGui::SetNextItemWidth(edit_win_size);
 
-            if (ImGui::InputTextMultiline(("##freq_manager_edit_notes" + name).c_str(), notesBuf, 4095)) {
+            if (ImGui::InputTextMultiline(("##bookmark_manager_edit_notes" + name).c_str(), notesBuf, 4095)) {
                 editedBookmark.notes = notesBuf;
             }
 
 
             ImGui::EndTable();
 
-            bool applyDisabled = 
-                (strlen(nameBuf) == 0) 
-                || (bookmarks.find(editedBookmarkName) != bookmarks.end() && editedBookmarkName != firstEditedBookmarkName)
+            std::string targetListName = listNames[editedBookmarkListId];
+
+            // Check if bookmark name already exists in the target list (only if different from original)
+            bool nameExistsInTargetList = false;
+            if (editOpen && (targetListName != selectedListName || editedBookmarkName != firstEditedBookmarkName)) {
+                config.acquire();
+                if (config.conf["lists"][targetListName]["bookmarks"].contains(editedBookmarkName)) {
+                    nameExistsInTargetList = true;
+                }
+                config.release();
+            }
+
+            bool applyDisabled =
+                (strlen(nameBuf) == 0)
+                || nameExistsInTargetList
+                || (bookmarks.find(editedBookmarkName) != bookmarks.end() && editedBookmarkName != firstEditedBookmarkName && targetListName == selectedListName)
                 || !timeValid(editedBookmark.startTime) || !timeValid(editedBookmark.endTime);
             if (applyDisabled) { style::beginDisabled(); }
             if (ImGui::Button("Apply")) {
                 open = false;
 
-                // If editing, delete the original one
-                if (editOpen) {
+                // If editing and list changed, remove from old list and add to new list
+                if (editOpen && targetListName != selectedListName) {
+                    // Remove from current (old) list
                     bookmarks.erase(firstEditedBookmarkName);
-                }
-                bookmarks[editedBookmarkName] = editedBookmark;
+                    saveByName(selectedListName);
 
-                saveByName(selectedListName);
+                    // Add to new list
+                    config.acquire();
+                    config.conf["lists"][targetListName]["bookmarks"][editedBookmarkName]["frequency"] = editedBookmark.frequency;
+                    config.conf["lists"][targetListName]["bookmarks"][editedBookmarkName]["bandwidth"] = editedBookmark.bandwidth;
+                    config.conf["lists"][targetListName]["bookmarks"][editedBookmarkName]["startTime"] = editedBookmark.startTime;
+                    config.conf["lists"][targetListName]["bookmarks"][editedBookmarkName]["endTime"] = editedBookmark.endTime;
+                    config.conf["lists"][targetListName]["bookmarks"][editedBookmarkName]["days"] = editedBookmark.days;
+                    config.conf["lists"][targetListName]["bookmarks"][editedBookmarkName]["geoinfo"] = editedBookmark.geoinfo;
+                    config.conf["lists"][targetListName]["bookmarks"][editedBookmarkName]["notes"] = editedBookmark.notes;
+                    config.conf["lists"][targetListName]["bookmarks"][editedBookmarkName]["mode"] = editedBookmark.mode;
+                    refreshWaterfallBookmarks(false);
+                    config.release(true);
+
+                    // Switch to the new list
+                    loadByName(targetListName);
+                    config.acquire();
+                    config.conf["selectedList"] = targetListName;
+                    config.release(true);
+                } else {
+                    // Same list - normal add or edit
+                    if (editOpen) {
+                        bookmarks.erase(firstEditedBookmarkName);
+                    }
+                    bookmarks[editedBookmarkName] = editedBookmark;
+                    saveByName(selectedListName);
+                }
             }
             if (applyDisabled) { style::endDisabled(); }
             ImGui::SameLine();
@@ -371,7 +416,7 @@ private:
 
         float menuWidth = ImGui::GetContentRegionAvail().x;
 
-        std::string id = "New##freq_manager_new_popup_" + name;
+        std::string id = "New##bookmark_manager_new_popup_" + name;
         ImGui::OpenPopup(id.c_str());
 
         char nameBuf[1024];
@@ -380,7 +425,7 @@ private:
         if (ImGui::BeginPopup(id.c_str(), ImGuiWindowFlags_NoResize)) {
             ImGui::LeftLabel("Name");
             ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
-            if (ImGui::InputText(("##freq_manager_edit_name" + name).c_str(), nameBuf, 1023)) {
+            if (ImGui::InputText(("##bookmark_manager_edit_name" + name).c_str(), nameBuf, 1023)) {
                 editedListName = nameBuf;
             }
 
@@ -437,7 +482,7 @@ private:
 
         float menuWidth = ImGui::GetContentRegionAvail().x;
 
-        std::string id = "Select lists##freq_manager_sel_popup_" + name;
+        std::string id = "Select lists##bookmark_manager_sel_popup_" + name;
         ImGui::OpenPopup(id.c_str());
 
         bool open = true;
@@ -446,7 +491,7 @@ private:
             // No need to lock config since we're not modifying anything and there's only one instance
             for (auto [listName, list] : config.conf["lists"].items()) {
                 bool shown = list["showOnWaterfall"];
-                if (ImGui::Checkbox((listName + "##freq_manager_sel_list_").c_str(), &shown)) {
+                if (ImGui::Checkbox((listName + "##bookmark_manager_sel_list_").c_str(), &shown)) {
                     config.acquire();
                     config.conf["lists"][listName]["showOnWaterfall"] = shown;
                     refreshWaterfallBookmarks(false);
@@ -623,7 +668,7 @@ private:
         float btnSize = ImGui::CalcTextSize("Rename").x + 8;
         float sizetarget = menuWidth - btnSize - 2 * lineHeight - 24 * style::uiScale;
         ImGui::SetNextItemWidth(sizetarget);
-        if (ImGui::Combo(("##freq_manager_list_sel" + _this->name).c_str(), &_this->selectedListId, _this->listNamesTxt.c_str())) {
+        if (ImGui::Combo(("##bookmark_manager_list_sel" + _this->name).c_str(), &_this->selectedListId, _this->listNamesTxt.c_str())) {
             _this->loadByName(_this->listNames[_this->selectedListId]);
             config.acquire();
             config.conf["selectedList"] = _this->selectedListName;
@@ -668,7 +713,7 @@ private:
         if (_this->selectedListName == "") { style::endDisabled(); }
 
         // List delete confirmation
-        if (ImGui::GenericDialog(("freq_manager_del_list_confirm" + _this->name).c_str(), _this->deleteListOpen, GENERIC_DIALOG_BUTTONS_YES_NO, [_this]() {
+        if (ImGui::GenericDialog(("bookmark_manager_del_list_confirm" + _this->name).c_str(), _this->deleteListOpen, GENERIC_DIALOG_BUTTONS_YES_NO, [_this]() {
                 ImGui::Text("Deleting list named \"%s\". Are you sure?", _this->selectedListName.c_str());
             }) == GENERIC_DIALOG_BUTTON_YES) {
             config.acquire();
@@ -687,7 +732,7 @@ private:
 
         if (_this->selectedListName == "") { style::beginDisabled(); }
         //Draw buttons on top of the list
-        ImGui::BeginTable(("freq_manager_btn_table" + _this->name).c_str(), 3);
+        ImGui::BeginTable(("bookmark_manager_btn_table" + _this->name).c_str(), 3);
         ImGui::TableNextRow();
 
         ImGui::TableSetColumnIndex(0);
@@ -722,6 +767,7 @@ private:
             _this->editedBookmark.notes = "";
 
             _this->editedBookmark.selected = false;
+            _this->editedBookmarkListId = _this->selectedListId;
 
             _this->createOpen = true;
 
@@ -752,6 +798,7 @@ private:
             _this->editedBookmark = _this->bookmarks[selectedNames[0]];
             _this->editedBookmarkName = selectedNames[0];
             _this->firstEditedBookmarkName = selectedNames[0];
+            _this->editedBookmarkListId = _this->selectedListId;
         }
         if (selectedNames.size() != 1 && _this->selectedListName != "") { style::endDisabled(); }
 
@@ -759,7 +806,7 @@ private:
 
         // Bookmark delete confirm dialog
         // List delete confirmation
-        if (ImGui::GenericDialog(("freq_manager_del_list_confirm" + _this->name).c_str(), _this->deleteBookmarksOpen, GENERIC_DIALOG_BUTTONS_YES_NO, [_this]() {
+        if (ImGui::GenericDialog(("bookmark_manager_del_list_confirm" + _this->name).c_str(), _this->deleteBookmarksOpen, GENERIC_DIALOG_BUTTONS_YES_NO, [_this]() {
                 ImGui::TextUnformatted("Deleting selected bookmaks. Are you sure?");
             }) == GENERIC_DIALOG_BUTTON_YES) {
             for (auto& _name : selectedNames) { _this->bookmarks.erase(_name); }
@@ -767,7 +814,7 @@ private:
         }
 
         // Bookmark list
-        if (ImGui::BeginTable(("freq_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable, ImVec2(0, 200.0f * style::uiScale))) {
+        if (ImGui::BeginTable(("bookmark_manager_bkm_table" + _this->name).c_str(), 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable, ImVec2(0, 200.f * style::uiScale))) {
             ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_DefaultSort, 0.0f, 0);
             ImGui::TableSetupColumn("Bookmark", ImGuiTableColumnFlags_DefaultSort, 0.0f, 1);
             ImGui::TableSetupScrollFreeze(2, 1);
@@ -856,7 +903,7 @@ private:
         if (selectedNames.size() != 1 && _this->selectedListName != "") { style::endDisabled(); }
 
         //Draw import and export buttons
-        ImGui::BeginTable(("freq_manager_bottom_btn_table" + _this->name).c_str(), 2);
+        ImGui::BeginTable(("bookmark_manager_bottom_btn_table" + _this->name).c_str(), 2);
         ImGui::TableNextRow();
 
         ImGui::TableSetColumnIndex(0);
@@ -1263,6 +1310,7 @@ private:
     std::string editedBookmarkName = "";
     std::string firstEditedBookmarkName = "";
     FrequencyBookmark editedBookmark;
+    int editedBookmarkListId = 0;
 
     std::vector<std::string> listNames;
     std::string listNamesTxt = "";
