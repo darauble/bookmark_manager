@@ -1,0 +1,17 @@
+# Build directories
+/build/
+/build-*/
+build/
+cmake-build-*/
+
+# CPack output
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp

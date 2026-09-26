@@ -1,0 +1,211 @@
+name: Build Plugin
+
+on:
+  push:
+    branches: [ '**' ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+  SDRPP_COMMIT: 0632342bb7548d429268c4afdf1d16eb87ae6b09
+
+jobs:
+  # ===========================================================================
+  # Linux: build the plugin against sdrpp_core from the submodule and produce
+  # both a .deb and a .rpm package.
+  # ===========================================================================
+  build_linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout (with submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # In case the pinned submodule commit is not fetched by the default
+      # shallow submodule checkout, make sure it is present.
+      - name: Ensure SDR++ submodule at pinned commit
+        run: |
+          git submodule update --init --recursive
+          cd vendor/SDRPlusPlus
+          git fetch --depth 1 origin "$SDRPP_COMMIT" || true
+          git checkout "$SDRPP_COMMIT"
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake pkg-config rpm \
+            libfftw3-dev libglfw3-dev libvolk2-dev libzstd-dev \
+            libglew-dev libgl1-mesa-dev
+
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+            -DBOOKMARK_MANAGER_ENABLE_PACKAGING=ON \
+            -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: Build
+        run: cmake --build build --target bookmark_manager -j$(nproc)
+
+      - name: Package (DEB + RPM)
+        working-directory: build
+        run: cpack
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist
+          cp build/*.deb dist/ 2>/dev/null || true
+          cp build/*.rpm dist/ 2>/dev/null || true
+          cp build/bookmark_manager.so dist/ 2>/dev/null || true
+          ls -la dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bookmark_manager-linux-x86_64
+          path: dist/*
+
+  # ===========================================================================
+  # macOS: build the plugin and produce a .tar.gz archive of the .dylib.
+  # volk is not in Homebrew, so it is built from source (as upstream SDR++ CI).
+  # ===========================================================================
+  build_macos:
+    runs-on: macos-13
+    steps:
+      - name: Checkout (with submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Ensure SDR++ submodule at pinned commit
+        run: |
+          git submodule update --init --recursive
+          cd vendor/SDRPlusPlus
+          git fetch --depth 1 origin "$SDRPP_COMMIT" || true
+          git checkout "$SDRPP_COMMIT"
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install pkg-config fftw glfw zstd cmake
+
+      - name: Install volk (from source)
+        run: |
+          git clone --recursive https://github.com/gnuradio/volk
+          cd volk && mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j3
+          sudo make install
+
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+            -DBOOKMARK_MANAGER_ENABLE_PACKAGING=ON
+
+      - name: Build
+        run: cmake --build build --target bookmark_manager -j3
+
+      - name: Package (tar.gz)
+        working-directory: build
+        run: cpack
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist
+          cp build/*.tar.gz dist/ 2>/dev/null || true
+          cp build/bookmark_manager.dylib dist/ 2>/dev/null || true
+          ls -la dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bookmark_manager-macos-x86_64
+          path: dist/*
+
+  # ===========================================================================
+  # Windows: build the plugin and produce a .zip archive of the .dll.
+  # Dependencies come from vcpkg (fftw3, glfw3, zstd) and PothosSDR (volk),
+  # mirroring the upstream SDR++ Windows build.
+  # ===========================================================================
+  build_windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout (with submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Ensure SDR++ submodule at pinned commit
+        shell: bash
+        run: |
+          git submodule update --init --recursive
+          cd vendor/SDRPlusPlus
+          git fetch --depth 1 origin "$SDRPP_COMMIT" || true
+          git checkout "$SDRPP_COMMIT"
+
+      - name: Download & install PothosSDR (provides volk)
+        run: |
+          Invoke-WebRequest -Uri "https://downloads.myriadrf.org/builds/PothosSDR/PothosSDR-2020.01.26-vc14-x64.exe" -OutFile pothos.exe
+          mkdir "C:/Program Files/PothosSDR"
+          7z x pothos.exe -o"C:/Program Files/PothosSDR/"
+
+      - name: Install vcpkg dependencies
+        run: vcpkg install fftw3:x64-windows glfw3:x64-windows zstd:x64-windows
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          -DBOOKMARK_MANAGER_ENABLE_PACKAGING=ON
+
+      - name: Build
+        run: cmake --build build --config Release --target bookmark_manager
+
+      - name: Package (zip)
+        working-directory: build
+        run: cpack -C Release
+
+      - name: Collect artifacts
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp build/*.zip dist/ 2>/dev/null || true
+          find build -name 'bookmark_manager.dll' -exec cp {} dist/ \; 2>/dev/null || true
+          ls -la dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bookmark_manager-windows-x64
+          path: dist/*
+
+  # ===========================================================================
+  # On tag pushes (v*), attach all packages to a GitHub Release.
+  # ===========================================================================
+  release:
+    needs: [ build_linux, build_macos, build_windows ]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifacts
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.tar.gz' -o -name '*.zip' \) -exec cp {} release/ \;
+          ls -la release
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*

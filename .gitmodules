@@ -1,0 +1,3 @@
+[submodule "vendor/SDRPlusPlus"]
+	path = vendor/SDRPlusPlus
+	url = https://github.com/AlexandreRouma/SDRPlusPlus.git
