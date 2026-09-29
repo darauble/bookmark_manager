@@ -83,6 +83,18 @@ if (NOT BOOKMARK_MANAGER_INTREE)
     # Root of the SDR++ core sources (used for include dirs below).
     set(SDRPP_CORE_ROOT "${SDRPP_SUBMODULE_DIR}/core")
 
+    # ---- CMake >= 4 compatibility for the vendored SDR++ core ------------
+    # SDR++ core vendors libcorrect, whose CMakeLists declares
+    # `cmake_minimum_required(VERSION 2.8)`. CMake 4.0 removed compatibility
+    # with minimums below 3.5, which makes `add_subdirectory(core)` fail with:
+    #   "Compatibility with CMake < 3.5 has been removed from CMake."
+    # We cannot edit the pinned submodule, so we set the policy-version floor
+    # before pulling core in. This variable is honored by cmake_minimum_required
+    # in the subdirectories and is a no-op on older CMake (< 3.24).
+    if (NOT DEFINED CMAKE_POLICY_VERSION_MINIMUM)
+        set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+    endif ()
+
     # Build ONLY sdrpp_core from the submodule (not the whole application).
     # The binary dir is kept separate to avoid polluting our tree.
     #

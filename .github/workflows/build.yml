@@ -45,6 +45,7 @@ jobs:
         run: |
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DBOOKMARK_MANAGER_ENABLE_PACKAGING=ON \
             -DCMAKE_INSTALL_PREFIX=/usr
 
@@ -105,6 +106,7 @@ jobs:
         run: |
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DBOOKMARK_MANAGER_ENABLE_PACKAGING=ON
 
       - name: Build
@@ -161,6 +163,7 @@ jobs:
         run: >
           cmake -S . -B build
           -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           -DBOOKMARK_MANAGER_ENABLE_PACKAGING=ON
 
       - name: Build
